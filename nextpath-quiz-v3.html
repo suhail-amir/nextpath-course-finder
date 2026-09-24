@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NextPath Course Finder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:20px}
+.container{width:100%;max-width:500px}
+.header{background:#1a56db;border-radius:16px 16px 0 0;padding:20px 20px 16px;text-align:center}
+.header img{height:42px;filter:brightness(0) invert(1);margin-bottom:8px;display:block;margin-left:auto;margin-right:auto}
+.header p{font-size:13px;color:rgba(255,255,255,0.85)}
+.progress-bar{background:#1a56db;padding:10px 20px}
+.progress-track{background:rgba(255,255,255,0.3);border-radius:10px;height:5px;overflow:hidden}
+.progress-fill{background:white;height:100%;border-radius:10px;transition:width 0.4s ease}
+.progress-text{color:rgba(255,255,255,0.85);font-size:12px;margin-top:5px}
+.section-label{background:#1648c0;color:rgba(255,255,255,0.9);padding:7px 20px 14px;font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase}
+.card{background:white;border-radius:0 0 16px 16px;padding:22px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.question{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:5px;line-height:1.4}
+.question-sub{font-size:13px;color:#6b7280;margin-bottom:16px}
+.options{display:flex;flex-direction:column;gap:9px}
+.option{border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:11px}
+.option:hover,.option.selected{border-color:#1a56db;background:#eff6ff}
+.option-icon{width:34px;height:34px;border-radius:9px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.option.selected .option-icon{background:#dbeafe}
+.option-text{font-size:14px;color:#374151;line-height:1.4;font-weight:500}
+.option-sub{font-size:12px;color:#9ca3af;margin-top:2px;font-weight:400}
+.text-input{width:100%;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-size:14px;color:#374151;outline:none;transition:border-color 0.2s;background:white}
+.text-input:focus{border-color:#1a56db}
+.text-input::placeholder{color:#c4c9d4}
+.nav{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:13px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-back{background:#f3f4f6;color:#6b7280;flex:0.35}
+.btn-next{background:#1a56db;color:white}
+.btn-next:hover{background:#1648c0}
+.error{color:#dc2626;font-size:12px;margin-top:8px;display:none}
+.form-label{font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;display:block}
+.form-label span{color:#dc2626}
+.course-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.course-btn{border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 8px;cursor:pointer;text-align:center;font-size:12px;font-weight:500;color:#374151;background:white;transition:all 0.2s;line-height:1.3;position:relative}
+.course-btn:hover{border-color:#1a56db;background:#eff6ff;color:#1a56db}
+.course-btn.selected{border-color:#1a56db;background:#eff6ff;color:#1a56db;font-weight:700}
+.course-btn.selected::after{content:"✓";position:absolute;top:4px;right:6px;font-size:10px;color:#1a56db;font-weight:700}
+.course-btn-other{grid-column:1 / -1}
+.selected-count{font-size:12px;color:#1a56db;font-weight:600;margin-top:8px}
+.result-header{text-align:center;margin-bottom:16px}
+.result-logo{height:30px;margin-bottom:10px}
+.result-header h2{font-size:19px;font-weight:700;color:#1a1a2e;margin-bottom:5px}
+.result-header p{font-size:13px;color:#6b7280}
+.student-summary{background:#f8faff;border:1.5px solid #dbeafe;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.student-name{font-size:15px;font-weight:700;color:#1a56db;margin-bottom:3px}
+.student-sub{font-size:12px;color:#6b7280}
+.stream-note{background:#fff8e1;border:1.5px solid #ffd54f;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#7b5800;line-height:1.5}
+.course-card{border:1.5px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:10px}
+.course-card.top{border-color:#1a56db;background:#eff6ff}
+.badge{background:#1a56db;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:7px}
+.course-name{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px}
+.course-why{font-size:13px;color:#4b5563;line-height:1.5;margin-bottom:8px}
+.course-tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{background:#f3f4f6;color:#6b7280;font-size:11px;padding:3px 9px;border-radius:20px}
+.course-card.top .tag{background:#dbeafe;color:#1a56db}
+.info-box{border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.info-yellow{background:#fef3c7;border:1.5px solid #fcd34d}
+.info-green{background:#f0fdf4;border:1.5px solid #86efac}
+.wa-btn{width:100%;background:#25d366;color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none}
+.wa-btn:hover{background:#1db954}
+.restart-btn{width:100%;background:#f3f4f6;color:#6b7280;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px}
+.save-msg{text-align:center;font-size:12px;color:#6b7280;margin-top:10px}
+.mention-courses{background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.mention-title{font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px}
+.mention-tags{display:flex;flex-wrap:wrap;gap:5px}
+.mention-tag{background:#dbeafe;color:#1a56db;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="data:image/png;base64,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" alt="NextPath EduCare">
+    <p>Find the right course after Plus 2 — in 3 minutes</p>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-track"><div class="progress-fill" id="pFill" style="width:5%"></div></div>
+    <div class="progress-text" id="pText">Step 1 of 15</div>
+  </div>
+  <div class="section-label" id="secLabel">Your Details</div>
+  <div class="card">
+    <div id="quizArea"></div>
+    <div id="resultArea" style="display:none"></div>
+  </div>
+</div>
+<script>
+const LOGO="data:image/png;base64,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";
+const SHEET_URL="https://script.google.com/macros/s/AKfycbxF1EbIzp1E5-PQabWRCRiZpf_0ssC51t_hl8n-ghVDN8n6BpipTbh8UUMBUalaEchF9w/exec";
+let user={name:"",phone:"",state:"Kerala",district:""};
+let ans={};
+let step=0;
+let refId="";
+
+const questions=[
+  // Q0 - Personality
+  {sec:"Section 1: Who you are",q:"When you have free time, what do you naturally enjoy most?",sub:"Pick the one that feels most like you — be honest",type:"options",opts:[
+    {i:"🔬",t:"Experimenting or figuring out how things work",s:"Science, technology, solving puzzles",v:"analytical"},
+    {i:"🤝",t:"Talking, helping, or being around people",s:"Socializing, counseling, leading",v:"social"},
+    {i:"🎨",t:"Creating something — art, writing, design",s:"Making things, expressing ideas",v:"creative"},
+    {i:"📋",t:"Organizing, planning, managing things",s:"Lists, systems, getting things done",v:"organized"}
+  ]},
+  // Q1 - Group role
+  {sec:"Section 1: Who you are",q:"In a group project, what role do you naturally take?",sub:"What you actually do — not what sounds impressive",type:"options",opts:[
+    {i:"💡",t:"The idea person — I suggest new approaches",s:"Creative thinking, problem solving",v:"creative"},
+    {i:"📊",t:"The researcher — I find and analyze information",s:"Data, facts, deep thinking",v:"analytical"},
+    {i:"🗣️",t:"The communicator — I present and coordinate",s:"Talking to people, making things clear",v:"social"},
+    {i:"✅",t:"The executor — I make sure things get done",s:"Organization, deadlines, finishing",v:"organized"}
+  ]},
+  // Q2 - Work environment
+  {sec:"Section 1: Who you are",q:"What work environment excites you most?",sub:"10 years from now — where do you want to be working?",type:"options",opts:[
+    {i:"🏥",t:"Hospital or clinic — helping patients directly",s:"Healthcare, saving lives, hands-on care",v:"medical"},
+    {i:"💻",t:"Tech company — building things on a computer",s:"Software, data, digital products",v:"tech"},
+    {i:"🏢",t:"Office — managing teams or running a business",s:"Management, strategy, entrepreneurship",v:"business"},
+    {i:"🎬",t:"Creative field — media, design, content",s:"Studios, agencies, freelancing",v:"creative"}
+  ]},
+  // Q3 - Subject enjoyment
+  {sec:"Section 1: Who you are",q:"Which school subject did you genuinely enjoy?",sub:"Enjoyment — not marks",type:"options",opts:[
+    {i:"🔭",t:"Science — Biology, Physics, Chemistry",s:"",v:"science"},
+    {i:"📐",t:"Maths and logical thinking",s:"",v:"math"},
+    {i:"📚",t:"Languages, History, Social Science",s:"",v:"humanities"},
+    {i:"💰",t:"Commerce, Economics, Accounts",s:"",v:"commerce"}
+  ]},
+  // Q4 - Vision
+  {sec:"Section 1: Who you are",q:"What does success mean to you at age 30?",sub:"Your honest vision — not your parents version",type:"options",opts:[
+    {i:"💵",t:"High salary and financial stability",s:"Security, savings, comfortable life",v:"financial"},
+    {i:"❤️",t:"Work that feels meaningful and helps others",s:"Impact, purpose, changing lives",v:"impact"},
+    {i:"🌍",t:"Freedom — travel, work from anywhere",s:"Flexibility, independence, experiences",v:"freedom"},
+    {i:"🏆",t:"Respected in my field, building something big",s:"Status, achievement, legacy",v:"achievement"}
+  ]},
+  // Q5 - Stream
+  {sec:"Section 2: Your situation",q:"What stream did you complete your Plus 2 in?",sub:"This determines which courses you are eligible for",type:"options",opts:[
+    {i:"🔬",t:"Science with Biology (PCB or PCMB)",s:"",v:"science_bio"},
+    {i:"⚙️",t:"Science without Biology (PCM)",s:"",v:"science_math"},
+    {i:"💼",t:"Commerce",s:"",v:"commerce"},
+    {i:"📖",t:"Humanities / Arts",s:"",v:"humanities"}
+  ]},
+  // Q6 - Stream comfort (THE KEY FIX)
+  {sec:"Section 2: Your situation",q:"How do you honestly feel about the stream you studied?",sub:"This matters more than you think — be completely honest",type:"options",opts:[
+    {i:"❤️",t:"I genuinely enjoyed it and want a career in this field",s:"My stream matches my interest",v:"stream_love"},
+    {i:"😐",t:"I studied it due to circumstances — not really my choice",s:"Parent pressure, school options, or I just followed along",v:"stream_forced"},
+    {i:"🤷",t:"I liked some parts but not others",s:"Mixed feelings — some subjects yes, some no",v:"stream_mixed"},
+    {i:"🔄",t:"I have no idea what I want — my stream does not define me",s:"I am open to anything that suits my personality",v:"stream_lost"}
+  ]},
+  // Q7 - Marks
+  {sec:"Section 2: Your situation",q:"Your approximate Plus 2 percentage?",sub:"Honest answer helps us suggest realistic options",type:"options",opts:[
+    {i:"🌟",t:"Above 85%",s:"All top colleges and courses open",v:"high"},
+    {i:"✨",t:"70% to 85%",s:"Most good colleges accessible",v:"medium"},
+    {i:"📈",t:"55% to 70%",s:"Good options with the right guidance",v:"low"},
+    {i:"🔄",t:"Below 55% or still appearing",s:"We will find the right path",v:"very_low"}
+  ]},
+  // Q8 - Budget
+  {sec:"Section 2: Your situation",q:"Approximate annual college budget?",sub:"Total per year including hostel if needed",type:"options",opts:[
+    {i:"🏛️",t:"Under 50,000 per year",s:"Government or aided colleges only",v:"budget_low"},
+    {i:"💰",t:"50,000 to 2 Lakh per year",s:"Aided and affordable private colleges",v:"budget_mid"},
+    {i:"💳",t:"2 Lakh to 5 Lakh per year",s:"Most private colleges in Kerala and Karnataka",v:"budget_high"},
+    {i:"💎",t:"Above 5 Lakh per year",s:"Premium colleges, medical, deemed universities",v:"budget_premium"}
+  ]},
+  // Q9 - Location
+  {sec:"Section 2: Your situation",q:"Where are you open to studying?",sub:"Location affects your college options significantly",type:"options",opts:[
+    {i:"🏠",t:"Only in Kerala",s:"Stay close to home",v:"kerala"},
+    {i:"🚌",t:"Kerala or nearby — Karnataka, Tamil Nadu",s:"Mangalore, Bangalore, Chennai",v:"south"},
+    {i:"✈️",t:"Anywhere in India",s:"Best college wherever it is",v:"india"},
+    {i:"🌏",t:"Open to studying abroad",s:"UK, Australia, Canada, Gulf",v:"abroad"}
+  ]},
+  // Q10 - Course status
+  {sec:"Section 2: Your situation",q:"Do you have a course already in mind?",sub:"We will tell you if it fits your profile",type:"options",opts:[
+    {i:"✅",t:"Yes — I have a specific course in mind",s:"",v:"yes_course"},
+    {i:"🤔",t:"I have 2-3 options but I am confused",s:"",v:"confused"},
+    {i:"❓",t:"No idea — that is why I am here",s:"",v:"no_idea"},
+    {i:"⚡",t:"My parents want one thing, I want another",s:"",v:"conflict"}
+  ]},
+  // Q11 - Course selection (multiple)
+  {sec:"Section 2: Your situation",q:"Select any courses you are considering:",sub:"Tap multiple — or skip if you have no idea yet",type:"course_select",optional:true},
+  // Q12 - Worry
+  {sec:"Section 3: Final question",q:"What is your biggest worry about choosing a course?",sub:"This helps us give you better guidance",type:"options",opts:[
+    {i:"💸",t:"Fees and financial burden on family",s:"",v:"fees"},
+    {i:"💼",t:"Not getting a job after the degree",s:"",v:"jobs"},
+    {i:"👨‍👩‍👧",t:"My parents will not approve my choice",s:"",v:"parents"},
+    {i:"🎯",t:"I might choose wrong and regret it",s:"",v:"wrong_choice"}
+  ]}
+];
+
+const allCourses=["MBBS","BDS","B.Sc Nursing","BPT (Physiotherapy)","BAMS (Ayurveda)","B.Pharm","BMLT / DMLT","Cardiac Technology","Dialysis Technology","Radiography","B.Tech CSE","B.Tech AI/ML","BCA","B.Sc Computer Science","B.Sc Data Science","B.Sc AI & ML","BBA","BCom","CA Foundation","BBA Digital Marketing","BA LLB (Law)","BA Journalism","B.Des (Design)","B.Sc Animation / VFX","Hotel Management","Merchant Navy","Aviation","B.Sc Psychology","B.Sc Agriculture","B.Sc Nutrition & Dietetics"];
+
+function genRef(){let c="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",r="NP-";for(let i=0;i<6;i++)r+=c[Math.floor(Math.random()*c.length)];return r;}
+function prog(){return Math.round(((step+1)/(questions.length+1))*100);}
+
+function renderForm(){
+  document.getElementById("pFill").style.width="5%";
+  document.getElementById("pText").textContent="Step 1 of "+(questions.length+1);
+  document.getElementById("secLabel").textContent="Your Details";
+  document.getElementById("quizArea").innerHTML=`
+    <div class="question">Let us start with your details</div>
+    <div class="question-sub">So we can follow up and personalise your counseling session</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px">
+      <div>
+        <label class="form-label">Your Name <span>*</span></label>
+        <input class="text-input" id="iName" placeholder="Enter your full name" value="${user.name}">
+      </div>
+      <div>
+        <label class="form-label">WhatsApp Number <span>*</span></label>
+        <input class="text-input" id="iPhone" type="tel" placeholder="+91 or 10-digit number" value="${user.phone}">
+      </div>
+      <div>
+        <label class="form-label">Your Location</label>
+        <div style="display:flex;gap:8px">
+          <input class="text-input" id="iState" placeholder="State" value="${user.state}" style="flex:1">
+          <input class="text-input" id="iDistrict" placeholder="Enter your district" value="${user.district}" style="flex:1.4">
+        </div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">State defaults to Kerala. Change if you are from another state.</div>
+      </div>
+    </div>
+    <div class="error" id="fErr">Please enter your name and WhatsApp number</div>
+    <div class="nav"><button class="btn btn-next" onclick="submitForm()" style="flex:1">Start Quiz →</button></div>`;
+  document.getElementById("resultArea").style.display="none";
+  document.getElementById("quizArea").style.display="block";
+}
+
+function submitForm(){
+  const n=document.getElementById("iName").value.trim();
+  const p=document.getElementById("iPhone").value.trim();
+  if(!n||!p){document.getElementById("fErr").style.display="block";return;}
+  user={name:n,phone:p,state:document.getElementById("iState").value.trim()||"Kerala",district:document.getElementById("iDistrict").value.trim()};
+  step=1;renderQ();
+}
+
+function renderQ(){
+  const qi=step-1;
+  const q=questions[qi];
+  document.getElementById("pFill").style.width=prog()+"%";
+  document.getElementById("pText").textContent="Step "+(step+1)+" of "+(questions.length+1);
+  document.getElementById("secLabel").textContent=q.sec;
+  let h=`<div class="question">${q.q}</div>`;
+  if(q.sub)h+=`<div class="question-sub">${q.sub}</div>`;
+
+  if(q.type==="options"){
+    h+='<div class="options">';
+    q.opts.forEach((o,i)=>{
+      const s=ans[qi]===o.v?"selected":"";
+      h+=`<div class="option ${s}" onclick="selOpt(${i})"><div class="option-icon">${o.i}</div><div><div class="option-text">${o.t}</div>${o.s?`<div class="option-sub">${o.s}</div>`:""}</div></div>`;
+    });
+    h+='</div><div class="error" id="qErr">Please select an option to continue</div>';
+  } else if(q.type==="course_select"){
+    const sel=ans[qi]||[];
+    h+='<div class="course-grid" id="cgrid">';
+    allCourses.forEach((c,i)=>{
+      const s=sel.includes(c)?"selected":"";
+      h+=`<button class="course-btn ${s}" onclick="toggleCourse('${c.replace(/'/g,"\'")}',this)">${c}</button>`;
+    });
+    h+=`<button class="course-btn course-btn-other" onclick="showOther(this)">✏️ Other course</button>`;
+    h+='</div>';
+    h+=`<div id="otherDiv" style="display:none;margin-top:10px"><input class="text-input" id="otherInp" placeholder="Type your course name..." oninput="addOther(this.value)"></div>`;
+    const cnt=sel.length;
+    h+=`<div class="selected-count" id="selCount">${cnt>0?cnt+" course"+(cnt>1?"s":"")+" selected — tap more to add or deselect to remove":"Tap any course to select — choose as many as you want"}</div>`;
+    if(q.optional)h+=`<div style="font-size:12px;color:#9ca3af;margin-top:6px">Optional — skip if unsure</div>`;
+  }
+
+  h+=`<div class="nav"><button class="btn btn-back" onclick="goBack()">←</button><button class="btn btn-next" onclick="goNext()">${qi===questions.length-1?"See My Results →":"Next →"}</button></div>`;
+  document.getElementById("quizArea").innerHTML=h;
+  document.getElementById("resultArea").style.display="none";
+  document.getElementById("quizArea").style.display="block";
+}
+
+function selOpt(i){
+  const qi=step-1;
+  ans[qi]=questions[qi].opts[i].v;
+  document.querySelectorAll(".option").forEach((el,idx)=>el.classList.toggle("selected",idx===i));
+  const e=document.getElementById("qErr");if(e)e.style.display="none";
+}
+
+function toggleCourse(c,btn){
+  const qi=step-1;
+  if(!ans[qi])ans[qi]=[];
+  const idx=ans[qi].indexOf(c);
+  if(idx>-1){ans[qi].splice(idx,1);btn.classList.remove("selected");}
+  else{ans[qi].push(c);btn.classList.add("selected");}
+  const cnt=ans[qi].length;
+  const sc=document.getElementById("selCount");
+  if(sc)sc.textContent=cnt>0?cnt+" course"+(cnt>1?"s":"")+" selected — tap more to add or deselect to remove":"Tap any course to select — choose as many as you want";
+}
+
+function showOther(btn){
+  const d=document.getElementById("otherDiv");
+  if(d){d.style.display=d.style.display==="none"?"block":"none";if(d.style.display==="block")document.getElementById("otherInp").focus();}
+  btn.classList.toggle("selected");
+}
+
+function addOther(v){
+  const qi=step-1;
+  if(!ans[qi])ans[qi]=[];
+  const filtered=ans[qi].filter(c=>!c.startsWith("__other__"));
+  if(v.trim())filtered.push("__other__"+v.trim());
+  ans[qi]=filtered;
+}
+
+function goNext(){
+  const qi=step-1;
+  const q=questions[qi];
+  if(q.type==="options"&&!ans[qi]){document.getElementById("qErr").style.display="block";return;}
+  if(step<questions.length){step++;renderQ();}
+  else showResult();
+}
+
+function goBack(){
+  if(step>1){step--;renderQ();}
+  else{step=0;renderForm();}
+}
+
+function getCourses(){
+  const p=[ans[0],ans[1],ans[2]].join(",");
+  const sub=ans[3],vis=ans[4];
+  const stream=ans[5];
+  const streamComfort=ans[6];
+  const mrk=ans[7],bud=ans[8];
+  
+  // KEY LOGIC: if stream was forced or student is lost, use personality only
+  const ignoreStream=(streamComfort==="stream_forced"||streamComfort==="stream_lost");
+  const mixedStream=(streamComfort==="stream_mixed");
+  
+  let c=[];
+
+  // PERSONALITY-FIRST recommendations (always included regardless of stream)
+  if(p.includes("tech")||sub==="math"||p.includes("analytical")){
+    c.push({n:"BCA — Computer Applications",w:"Your analytical and tech-oriented personality is a strong fit for computing. BCA opens software development careers and government college options in Kerala are very affordable.",t:["Any stream","3 years","IT jobs","Govt colleges available"],score:9});
+    if(mrk==="high"||mrk==="medium")c.push({n:"B.Sc Data Science",w:"The highest-demand tech course in 2026. Your love for logical thinking and problem-solving suits data science perfectly — high salary, multiple industries.",t:["Any stream","3 years","Highest demand 2026","Tech career"],score:8});
+  }
+
+  if(p.includes("business")||p.includes("organized")||vis==="financial"||vis==="achievement"){
+    c.push({n:"BBA — Business Administration",w:"Your organized, business-minded personality suits management perfectly. Digital Marketing and Hospital Management specializations are the most in-demand tracks in 2026.",t:["Any stream","3 years","Management career","Entrepreneurship path"],score:8});
+  }
+
+  if(p.includes("creative")||vis==="freedom"){
+    c.push({n:"B.Des — UI/UX or Communication Design",w:"Your creative personality is built for design. UI/UX designers are among the highest-paid professionals in tech companies — and you can work remotely.",t:["Any stream","4 years","High salary","Remote work possible"],score:7});
+    c.push({n:"BA Journalism and Mass Communication",w:"For people who love language, storytelling and ideas. Digital media is booming in Kerala — content, video, journalism all growing fast.",t:["Any stream","3 years","Media career","Creative field"],score:7});
+  }
+
+  if(p.includes("social")||vis==="impact"){
+    c.push({n:"B.Sc Psychology",w:"Your people-oriented personality makes psychology a natural fit. Rapidly growing post-2020 with careers in counseling, HR and research.",t:["Any stream","3 years","Growing demand","People-focused"],score:7});
+    c.push({n:"BA LLB — Integrated Law",w:"Your communication skills and desire for impact suit law perfectly. Corporate law and human rights are both growing fields.",t:["CLAT exam","5 years","High earning","Any stream"],score:7});
+  }
+
+  // STREAM-SPECIFIC (only if student genuinely enjoyed their stream)
+  if(!ignoreStream){
+    if(stream==="science_bio"){
+      if(p.includes("medical")||sub==="science"||vis==="impact"){
+        if(mrk==="high"&&(bud==="budget_premium"||bud==="budget_high"))c.push({n:"MBBS",w:"Your Biology background, high marks and desire to help people make medicine a natural fit. Highest career ceiling in healthcare.",t:["NEET required","5.5 years","Highest earning","Kerala + Karnataka"],score:10});
+        c.push({n:"B.Sc Nursing",w:"Kerala nurses are the most internationally sought healthcare professionals — Gulf, UK and Europe all have massive demand. Strong government college options.",t:["NEET required","4 years","International scope","Govt colleges"],score:9});
+        c.push({n:"BPT — Physiotherapy",w:"No NEET required at most colleges. Direct patient care. Growing scope in hospitals, sports teams and private practice across India.",t:["No NEET at most","4.5 years","Own clinic possible","Growing field"],score:8});
+      }
+      if(mixedStream||p.includes("analytical")||sub==="math"){
+        c.push({n:"B.Sc Biomedical / Biotechnology",w:"Perfect for PCB students who love science but want a technology-facing career rather than direct patient care.",t:["Science stream","3 years","Research career","Trending 2026"],score:7});
+      }
+    }
+
+    if(stream==="science_math"){
+      if(p.includes("tech")||sub==="math"){
+        if(mrk==="high"||mrk==="medium")c.push({n:"B.Tech CSE / AI & ML",w:"PCM background plus analytical thinking equals engineering. CSE with AI/ML is the highest-demand and highest-salary engineering stream in 2026.",t:["JEE / KEAM","4 years","Highest IT salary","Many colleges"],score:10});
+      }
+    }
+
+    if(stream==="commerce"){
+      if(vis==="financial"||vis==="achievement")c.push({n:"CA Foundation — Chartered Accountancy",w:"Highest earning qualification for Commerce students. Tough but the salary after qualification is among the highest in India.",t:["Commerce stream","Alongside degree","Highest earning","Govt + private jobs"],score:9});
+    }
+
+    if(stream==="humanities"){
+      if(p.includes("social"))c.push({n:"BA LLB — Integrated Law",w:"Humanities background and strong communication skills are exactly what law needs. Corporate and human rights both offer excellent careers.",t:["CLAT exam","5 years","High earning","Humanities"],score:9});
+    }
+  }
+
+  // If stream was FORCED — add a helpful note course for their actual stream potential
+  if(ignoreStream&&stream==="science_bio"){
+    c.push({n:"BCA — Computer Applications",w:"Many PCB students who do not want medical careers find BCA is the perfect exit — strong IT career, no biology required, affordable government options in Kerala.",t:["PCB students can apply","3 years","IT career","No biology needed"],score:9});
+    c.push({n:"BBA — Business Administration",w:"If you have a business or management mindset, your Plus 2 stream does not limit you at all. BBA is open to all streams.",t:["Any stream","3 years","Management","No stream barrier"],score:8});
+  }
+
+  if(ignoreStream&&stream==="science_math"){
+    if(!p.includes("tech")&&!p.includes("analytical")){
+      c.push({n:"BBA — Business Administration",w:"PCM does not mean you have to do engineering. If your personality points to business, management, or people — BBA is fully open to you.",t:["Any stream","3 years","Management","PCM students welcome"],score:8});
+    }
+  }
+
+  // deduplicate by name
+  const seen=new Set();
+  c=c.filter(x=>{if(seen.has(x.n))return false;seen.add(x.n);return true;});
+  
+  // sort by score descending
+  c.sort((a,b)=>b.score-a.score);
+
+  if(c.length===0)c=[
+    {n:"BCA — Computer Applications",w:"Versatile, high-demand degree open to all streams. Government college options in Kerala at very low fees.",t:["Any stream","3 years","IT jobs","Affordable"],score:8},
+    {n:"BBA — Business Administration",w:"Strong all-rounder degree opening management, marketing and entrepreneurship paths across every industry.",t:["Any stream","3 years","Management","Flexible career"],score:7},
+    {n:"B.Sc Psychology",w:"Rapidly growing field combining scientific thinking with understanding people.",t:["Any stream","3 years","Growing demand","People-focused"],score:6}
+  ];
+
+  return c.slice(0,3);
+}
+
+function showResult(){
+  refId=genRef();
+  document.getElementById("pFill").style.width="100%";
+  document.getElementById("pText").textContent="Your results are ready!";
+  document.getElementById("secLabel").textContent="Your Results";
+  document.getElementById("quizArea").style.display="none";
+  
+  const recs=getCourses();
+  const selectedCourses=ans[11]||[];
+  const wr=ans[12];
+  const streamComfort=ans[6];
+  const stream=ans[5];
+  const loc=user.district?user.district+", "+user.state:user.state;
+
+  const wMsgs={
+    fees:"Budget is a real concern — NextPath knows affordable government and aided options most students miss on their own.",
+    jobs:"We only recommend courses with clear career paths. Your counselor will show you real placement data from colleges.",
+    parents:"Parent conversations about courses can be tough. Our counselors have helped many families find a decision everyone is happy with.",
+    wrong_choice:"That is exactly why NextPath exists. A personalised session removes the guesswork completely."
+  };
+
+  const streamNotes={
+    stream_forced:"Your results are based on your personality — not your stream. Your stream was a circumstance. Your career should be your choice.",
+    stream_lost:"Since you are open to anything, we matched courses to who you are — not what stream you studied.",
+    stream_mixed:"We have balanced your stream background with your personality to find the best fit.",
+    stream_love:""
+  };
+
+  let h=`<div class="result-header"><img src="${LOGO}" class="result-logo" alt="NextPath EduCare"><h2>Your Course Matches 🎯</h2><p>Based on your personality, situation and interests</p></div>`;
+  h+=`<div class="student-summary"><div class="student-name">👋 ${user.name}</div><div class="student-sub">${loc} • Ref: ${refId}</div></div>`;
+
+  if(streamComfort&&streamNotes[streamComfort])h+=`<div class="stream-note">💡 ${streamNotes[streamComfort]}</div>`;
+
+  recs.forEach((c,i)=>{
+    h+=`<div class="course-card ${i===0?"top":""}">${i===0?'<span class="badge">⭐ Best Match</span>':""}<div class="course-name">${c.n}</div><div class="course-why">${c.w}</div><div class="course-tags">${c.t.map(t=>`<span class="tag">${t}</span>`).join("")}</div></div>`;
+  });
+
+  if(selectedCourses.length>0){
+    const cleanCourses=selectedCourses.map(c=>c.startsWith("__other__")?c.replace("__other__",""):c);
+    h+=`<div class="mention-courses"><div class="mention-title">📝 Courses you mentioned — we will discuss these too:</div><div class="mention-tags">${cleanCourses.map(c=>`<span class="mention-tag">${c}</span>`).join("")}</div></div>`;
+  }
+
+  if(wr&&wMsgs[wr])h+=`<div class="info-box info-green"><div style="font-size:13px;color:#166534">💬 ${wMsgs[wr]}</div></div>`;
+
+  const cleanSelected=selectedCourses.map(c=>c.startsWith("__other__")?c.replace("__other__",""):c).join(", ");
+  const waMsg=encodeURIComponent("Hi NextPath! My quiz reference ID is "+refId+". I am "+user.name+" from "+loc+". My top match was "+recs[0].n+". I would like personalised guidance.");
+  h+=`<a class="wa-btn" href="https://wa.me/918590361125?text=${waMsg}" target="_blank"><span>💬 Talk to a NextPath Counselor</span><span style="font-size:13px;font-weight:400;opacity:0.9">+91 85903 61125</span></a>`;
+  h+=`<div class="save-msg" id="saveMsg">📤 Saving your results...</div>`;
+  h+=`<button class="restart-btn" onclick="restart()">↺ Retake Quiz</button>`;
+
+  document.getElementById("resultArea").innerHTML=h;
+  document.getElementById("resultArea").style.display="block";
+  saveData(recs,cleanSelected,wr,loc);
+}
+
+function saveData(recs,selectedCourses,wr,loc){
+  const streamLabels={science_bio:"Science (PCB/PCMB)",science_math:"Science (PCM)",commerce:"Commerce",humanities:"Humanities"};
+  const comfortLabels={stream_love:"Genuinely enjoyed",stream_forced:"Forced/Circumstance",stream_mixed:"Mixed feelings",stream_lost:"No idea/Open"};
+  const marksLabels={high:"Above 85%",medium:"70-85%",low:"55-70%",very_low:"Below 55%"};
+  const budgetLabels={budget_low:"Under 50k/yr",budget_mid:"50k-2L/yr",budget_high:"2L-5L/yr",budget_premium:"Above 5L/yr"};
+  const locationLabels={kerala:"Only Kerala",south:"South India",india:"Anywhere India",abroad:"Open to Abroad"};
+  const worryLabels={fees:"Fees/Budget",jobs:"Job prospects",parents:"Parent approval",wrong_choice:"Fear of wrong choice"};
+  const courseStatusLabels={yes_course:"Has course in mind",confused:"Confused between options",no_idea:"No idea yet",conflict:"Parent-student conflict"};
+
+  const now=new Date();
+  const timestamp=now.toLocaleDateString("en-IN")+", "+now.toLocaleTimeString("en-IN");
+
+  const payload={
+    refId:refId,
+    time:timestamp,
+    name:user.name,
+    phone:user.phone,
+    location:loc,
+    q1:ans[0]||"",
+    q2:ans[1]||"",
+    q3:ans[2]||"",
+    q4:ans[3]||"",
+    q5:ans[4]||"",
+    stream:streamLabels[ans[5]]||ans[5]||"",
+    streamComfort:comfortLabels[ans[6]]||ans[6]||"",
+    marks:marksLabels[ans[7]]||ans[7]||"",
+    budget:budgetLabels[ans[8]]||ans[8]||"",
+    locationPref:locationLabels[ans[9]]||ans[9]||"",
+    courseStatus:courseStatusLabels[ans[10]]||ans[10]||"",
+    coursesInMind:selectedCourses||"None",
+    worry:worryLabels[wr]||wr||"",
+    result1:recs[0]?recs[0].n:"",
+    result2:recs[1]?recs[1].n:"",
+    result3:recs[2]?recs[2].n:""
+  };
+
+  fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+    .then(()=>{document.getElementById("saveMsg").textContent="✅ Saved. Share Reference ID "+refId+" with your counselor.";})
+    .catch(()=>{document.getElementById("saveMsg").textContent="✅ Quiz complete. Reference ID: "+refId;});
+}
+
+function restart(){user={name:"",phone:"",state:"Kerala",district:""};ans={};step=0;refId="";renderForm();}
+renderForm();
+</script>
+</body>
+</html>

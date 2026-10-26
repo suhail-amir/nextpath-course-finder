@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NextPath Course Builder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Segoe UI',sans-serif;background:#f0f4f8;color:#1f2937;padding:16px}
+.w{max-width:760px;margin:0 auto}.hd{background:#1a56db;color:#fff;border-radius:16px 16px 0 0;padding:18px}.hd h1{font-size:19px}.hd p{font-size:12px;opacity:.85;margin-top:3px}
+.tabs{display:flex;background:#1648c0}.tabs button{flex:1;padding:11px;border:0;background:none;color:#cfe0ff;font-weight:700;font-size:13px;cursor:pointer}.tabs button.on{background:#fff;color:#1a56db}
+.bx{background:#fff;padding:18px;border-radius:0 0 16px 16px;font-size:13.5px;line-height:1.6}
+.st{margin:12px 0;padding:12px;border:1.5px solid #e5e7eb;border-radius:12px}.st b{color:#1a56db}
+input[type=text],input[type=file]{width:100%;padding:9px 10px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;margin-top:4px}
+.row{display:flex;gap:10px}.row>div{flex:1}label{font-size:12px;font-weight:700;color:#374151}
+.btn{padding:11px 16px;border:0;border-radius:10px;background:#1a56db;color:#fff;font-weight:700;cursor:pointer;font-size:14px;margin:4px 6px 4px 0}.btn.g{background:#16a34a}.btn.o{background:#fff;color:#1a56db;border:1.5px solid #1a56db}.btn:disabled{background:#cbd5e1;cursor:not-allowed}
+.ok{background:#f0fdf4;border:1.5px solid #86efac;color:#166534;padding:10px;border-radius:10px;margin:8px 0}
+.er{background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;padding:10px;border-radius:10px;margin:8px 0}
+.wn{background:#fffbeb;border:1.5px solid #fcd34d;color:#92400e;padding:10px;border-radius:10px;margin:8px 0}
+.pd{background:#eff6ff;border:1.5px solid #93c5fd;color:#1e3a8a;padding:10px;border-radius:10px;margin:8px 0}
+ul{margin:6px 0 0 18px;font-size:12.5px}textarea{width:100%;height:110px;font-size:12px;padding:8px;border:1.5px solid #e5e7eb;border-radius:10px;margin-top:6px}
+.small{font-size:12px;color:#6b7280}
+</style></head><body><div class="w">
+<div class="hd"><h1>NextPath Course Builder</h1><p>Turns your master course sheet into data.js and match.js. Runs only in your browser. Nothing is uploaded anywhere.</p></div>
+<div class="tabs"><button id="t1" class="on" onclick="tab(1)">1. Build from master sheet</button><button id="t2" onclick="tab(2)">2. Check existing files</button></div>
+<div class="bx">
+<div id="p1">
+<div class="st"><b>Step 1.</b> In Google Sheets: File > Download > Comma-separated values (.csv). Choose that file here.
+<input type="file" id="csv" accept=".csv,text/csv"></div>
+<div class="st"><b>Step 2.</b> Set the report date and version. Raise the version each time (1.9, 2.0, 2.1).
+<div class="row"><div><label>Report date</label><input type="text" id="rd"></div><div><label>Version</label><input type="text" id="rv" value="2.0"></div></div></div>
+<div class="st"><b>Step 3.</b> <button class="btn" onclick="build()">Build and check</button> <button class="btn o" onclick="tpl()">Download blank template</button>
+<div id="res"></div></div>
+</div>
+<div id="p2" style="display:none">
+<div class="st">Choose your current <b>data.js</b> and <b>match.js</b> (for example after an AI tool edited them). This checks them for mistakes before you upload to GitHub.
+<label style="display:block;margin-top:8px">data.js</label><input type="file" id="fd" accept=".js"><label style="display:block;margin-top:8px">match.js</label><input type="file" id="fm" accept=".js">
+<button class="btn" onclick="chk()">Check files</button><div id="res2"></div></div>
+</div>
+<p class="small">Keep the master sheet private in Google Drive. This page and the files you publish are public, so never put commissions, internal notes or student data in the sheet.</p>
+</div></div>
+<script>
+//CORE_START
+const DEPT=["Medical & Health Sciences","Pharmacy & Life Sciences","Engineering & Architecture","Computer & IT","Management & Commerce","Law","Design, Media & Creative","Humanities, Education & Social Sciences","Hospitality, Aviation & Maritime","Agriculture, Environment & Sciences"];
+const COLS=["id","status","department","subgroup","name","duration","risk_ignore_ai_low","risk_ignore_ai_high","risk_learn_ai_low","risk_learn_ai_high","evidence","pdf_listed","why_note","ai_takes_over","stays_human","ai_skill_to_learn","good_colleges","nextpath_admission","nextpath_partner_colleges","fees_note","personality","work_setting","subject","vision","streams","cost_cheapest_route","cost_typical","marks_needed","entrance","location","job_demand","career_path_only","backup_group"];
+const EVW={Strong:"S",Moderate:"M",Estimate:"E"};
+const PERS={analytical:"a",social:"s",creative:"c",organised:"o",organized:"o"};
+const WORK={medical:"m",tech:"t",business:"b",creative:"c"};
+const SUBJ={science:"s",maths:"m",math:"m",humanities:"h",commerce:"c"};
+const VIS={financial:"f",impact:"i",freedom:"r",achievement:"a"};
+const STR={pcb:"P",pcmb:"X",pcm:"M",commerce:"C",humanities:"H"};
+const MARKS={"any":1,"55-70":2,"70-85":3,"85+":4};
+const ENT={"none":"","neet must":"N","neet usual":"n","keam/jee":"E","clat/nata/uceed/nift/cuet":"O"};
+const LOC={"kerala":"K","south india":"S","other states":"I"};
+const GRP={"medical":"med","science & research":"sci","engineering":"eng","tech & it":"tech","business & commerce":"biz","law":"law","creative":"cre","education & social":"soc","humanities":"hum","hospitality":"hos","aviation":"avi","maritime":"mar","agriculture & environment":"agr"};
+function norm(s){return String(s==null?"":s).trim();}
+function low(s){return norm(s).toLowerCase().replace(/\s+/g," ");}
+function parseCSV(t){t=String(t).replace(/^﻿/,"");const rows=[];let row=[],f="",q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+  else if(c==='"')q=true;else if(c===","){row.push(f);f="";}
+  else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(f);f="";rows.push(row);row=[];}
+  else f+=c;}
+ if(f!==""||row.length){row.push(f);rows.push(row);}
+ return rows.filter(r=>r.some(x=>norm(x)!==""));}
+function toObjects(rows){const h=rows[0].map(low).map(x=>x.replace(/ /g,"_"));return rows.slice(1).map((r,i)=>{const o={_row:i+2};h.forEach((k,j)=>o[k]=norm(r[j]));return o;});}
+function listOf(s){return norm(s)?norm(s).split(/[,;|]/).map(x=>low(x)).filter(Boolean):[];}
+function slug(n){return low(n).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");}
+function yes(s){return /^(yes|y|1|true)$/i.test(norm(s));}
+function mapList(s,M,label,errs,at){const out=[];listOf(s).forEach(w=>{if(M[w]===undefined)errs.push(at+": unknown "+label+" '"+w+"'");else if(!out.includes(M[w]))out.push(M[w]);});return out.join("");}
+function buildFromRows(objs,opt){const errors=[],warnings=[],pending=[],courses=[],match={},seen={};let hidden=0;
+ objs.forEach(o=>{const at="Row "+o._row+(o.name?" ("+o.name+")":"");
+  if(!o.name&&!o.id)return;
+  if(/^hidden$/i.test(o.status)){hidden++;return;}
+  if(!o.name){errors.push(at+": name is empty");return;}
+  let id=o.id;if(!id){id=slug(o.name);warnings.push(at+": id was empty, used '"+id+"'");}
+  if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)){errors.push(at+": id '"+id+"' must be lowercase letters, digits and hyphens only");return;}
+  if(seen[id]){errors.push(at+": duplicate id '"+id+"' (also row "+seen[id]+")");return;}seen[id]=o._row;
+  const di=DEPT.findIndex(d=>low(d)===low(o.department).replace(/ and /g," & "));
+  if(di<0){errors.push(at+": department '"+o.department+"' is not one of the 10 department names");return;}
+  const nums=[o.risk_ignore_ai_low,o.risk_ignore_ai_high,o.risk_learn_ai_low,o.risk_learn_ai_high];
+  const blank=nums.filter(x=>norm(x)==="").length;
+  if(blank===4){pending.push({id:id,name:o.name,row:o._row});return;}
+  if(blank>0){errors.push(at+": risk numbers are only partly filled");return;}
+  const n=nums.map(Number);
+  if(n.some(x=>isNaN(x)||x<0||x>100)){errors.push(at+": risk numbers must be 0 to 100");return;}
+  if(n[0]>n[1]||n[2]>n[3]){errors.push(at+": a risk range has low above high");return;}
+  if(n[3]>n[1])warnings.push(at+": 'learn AI' risk is higher than 'ignore AI' risk. Check.");
+  let ev=EVW[Object.keys(EVW).find(k=>low(k)===low(o.evidence)||low(k)[0]===low(o.evidence))];
+  if(!ev){if(norm(o.evidence)){errors.push(at+": evidence must be Strong, Moderate or Estimate");return;}ev="E";warnings.push(at+": evidence empty, set to Estimate");}
+  if(!o.ai_takes_over||!o.stays_human||!o.ai_skill_to_learn){errors.push(at+": ai_takes_over, stays_human and ai_skill_to_learn are required");return;}
+  if(!o.good_colleges)warnings.push(at+": good_colleges is empty");
+  const c={id:id,d:di,s:o.subgroup,n:o.name,y:o.duration,r:[n[0],n[1]],a:[n[2],n[3]],c:ev,p:yes(o.pdf_listed)?1:0,note:o.why_note,t:o.ai_takes_over,h:o.stays_human,k:o.ai_skill_to_learn,u:o.good_colleges};
+  if(yes(o.nextpath_admission)){c.na=1;if(!o.nextpath_partner_colleges)warnings.push(at+": NextPath admission is Yes but partner colleges are empty");}
+  if(o.nextpath_partner_colleges)c.np=o.nextpath_partner_colleges;
+  if(o.fees_note)c.fee=o.fees_note;
+  const e=[];const m={};
+  m.p=mapList(o.personality,PERS,"personality",e,at);m.e=mapList(o.work_setting,WORK,"work_setting",e,at);m.sj=mapList(o.subject,SUBJ,"subject",e,at);m.v=mapList(o.vision,VIS,"vision",e,at);
+  const career=yes(o.career_path_only);
+  const sl=listOf(o.streams);m.st=sl.includes("any")?"PXMCH":mapList(o.streams,STR,"streams",e,at);
+  const b1=parseInt(o.cost_cheapest_route),b2=parseInt(o.cost_typical);
+  m.b=[b1,b2];m.m=MARKS[low(o.marks_needed)];
+  m.ex=ENT[low(o.entrance||"none")];m.g=GRP[low(o.backup_group)];m.loc=LOC[low(o.location||"kerala")];m.dm=norm(o.job_demand)===""?3:parseInt(o.job_demand);
+  if(!career){
+   if(!m.p)e.push(at+": personality needs at least one of analytical, social, creative, organised");
+   if(!m.st)e.push(at+": streams is required (PCB, PCMB, PCM, Commerce, Humanities or Any)");
+   if(!(b1>=1&&b1<=4&&b2>=1&&b2<=4))e.push(at+": cost_cheapest_route and cost_typical must be 1 to 4");
+   else if(b2<b1)e.push(at+": cost_typical cannot be lower than cost_cheapest_route");
+   if(m.m===undefined)e.push(at+": marks_needed must be Any, 55-70, 70-85 or 85+");
+   if(m.ex===undefined)e.push(at+": entrance is not recognised");
+   if(m.g===undefined)e.push(at+": backup_group is not recognised");
+   if(m.loc===undefined)e.push(at+": location must be Kerala, South India or Other states");
+   if(!(m.dm>=1&&m.dm<=5))e.push(at+": job_demand must be 1 to 5");
+  }else{m.skip=1;if(!m.st)m.st="PXMCH";if(!(b1>=1))m.b=[1,1];if(m.m===undefined)m.m=1;if(m.ex===undefined)m.ex="";if(m.g===undefined)m.g="";if(m.loc===undefined)m.loc="K";if(!(m.dm>=1))m.dm=3;}
+  if(e.length){e.forEach(x=>errors.push(x));return;}
+  match[id]=m;courses.push(c);});
+ const gc={};courses.forEach(c=>{const m=match[c.id];if(m&&!m.skip)gc[m.g]=(gc[m.g]||0)+1;});
+ const GN={med:"Medical",sci:"Science & Research",eng:"Engineering",tech:"Tech & IT",biz:"Business & Commerce",law:"Law",cre:"Creative",soc:"Education & Social",hum:"Humanities",hos:"Hospitality",aviation:"",avi:"Aviation",mar:"Maritime",agr:"Agriculture & Environment"};
+ Object.keys(gc).forEach(g=>{if(gc[g]<3)warnings.push("Only "+gc[g]+" active course(s) in backup group '"+(GN[g]||g)+"'. Students matched there will see few or no backup options.");});
+ DEPT.forEach((d,i)=>{if(!courses.some(c=>c.d===i))warnings.push("Department '"+d+"' has no active courses, so it will not appear in the report.");});
+ if(courses.filter(c=>!(match[c.id]||{}).skip).length<15)warnings.push("Fewer than 15 recommendable courses. The finder works best with a wide list. Consider keeping more courses Active.");
+ const order=[];courses.forEach(c=>{const k=c.d+"|"+c.s;if(!order.includes(k))order.push(k);});
+ courses.sort((a,b)=>a.d-b.d||order.indexOf(a.d+"|"+a.s)-order.indexOf(b.d+"|"+b.s));
+ return{errors:errors,warnings:warnings,pending:pending,hidden:hidden,courses:courses,match:match,dataJs:makeDataJs(courses,opt),matchJs:makeMatchJs(courses,match)};}
+function makeDataJs(courses,opt){return 'const REPORT={date:"'+opt.date+'",version:"'+opt.version+'"};\nconst DEPTS='+JSON.stringify(DEPT)+';\nconst COURSES=[\n'+courses.map(c=>JSON.stringify(c)).join(",\n")+'\n];\n';}
+function makeMatchJs(courses,match){const o={};courses.forEach(c=>o[c.id]=match[c.id]);return '// NextPath Career Compass matching data. Generated by admin/builder.html from the master sheet. Edit the sheet, not this file.\nconst MATCH='+JSON.stringify(o)+';\n';}
+function checkFiles(COURSES,MATCH){const errors=[],warnings=[],seen={};
+ COURSES.forEach((c,i)=>{const at="Course "+(c.id||("#"+(i+1)));
+  if(!c.id||!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(c.id))errors.push(at+": bad id");
+  if(seen[c.id])errors.push(at+": duplicate id");seen[c.id]=1;
+  if(!(c.d>=0&&c.d<=9))errors.push(at+": department number must be 0 to 9");
+  ["n","t","h","k"].forEach(k=>{if(!c[k])errors.push(at+": '"+k+"' is empty");});
+  [c.r,c.a].forEach(r=>{if(!Array.isArray(r)||r.length!==2||r[0]>r[1]||r[0]<0||r[1]>100)errors.push(at+": risk range invalid");});
+  if(!["S","M","E"].includes(c.c))errors.push(at+": evidence must be S, M or E");
+  if(c.a&&c.r&&c.a[1]>c.r[1])warnings.push(at+": learn-AI risk higher than ignore-AI risk");
+  const m=MATCH[c.id];if(!m){errors.push(at+": no entry in match.js (the finder will ignore it)");return;}
+  if(!m.skip){if(!m.p)errors.push(at+": match personality empty");if(!m.st||/[^PXMCH]/.test(m.st))errors.push(at+": match streams invalid");
+   if(!Array.isArray(m.b)||m.b.length!==2||m.b[0]<1||m.b[1]>4||m.b[1]<m.b[0])errors.push(at+": match cost tiers invalid");
+   if(!(m.m>=1&&m.m<=4))errors.push(at+": match marks band invalid");if(!["","N","n","E","O"].includes(m.ex))errors.push(at+": match entrance invalid");
+   if(!["med","sci","eng","tech","biz","law","cre","soc","hum","hos","avi","mar","agr"].includes(m.g))errors.push(at+": match backup group invalid");
+   if(!["K","S","I"].includes(m.loc))errors.push(at+": match location invalid");if(!(m.dm>=1&&m.dm<=5))errors.push(at+": match demand invalid");}});
+ Object.keys(MATCH).forEach(k=>{if(!seen[k])warnings.push("match.js has '"+k+"' but data.js has no such course");});
+ return{errors:errors,warnings:warnings};}
+//CORE_END
+
+const $=id=>document.getElementById(id);
+$("rd").value=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+function tab(n){$("p1").style.display=n==1?"block":"none";$("p2").style.display=n==2?"block":"none";$("t1").className=n==1?"on":"";$("t2").className=n==2?"on":"";}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function list(a,cls,title){return a.length?`<div class="${cls}"><b>${title} (${a.length})</b><ul>${a.slice(0,60).map(x=>"<li>"+esc(x)+"</li>").join("")}${a.length>60?"<li>...and "+(a.length-60)+" more</li>":""}</ul></div>`:"";}
+function dl(name,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/javascript"}));a.download=name;document.body.appendChild(a);a.click();a.remove();}
+let OUT=null;
+function build(){const f=$("csv").files[0];if(!f){$("res").innerHTML='<div class="er">Choose the CSV file first.</div>';return;}
+ const r=new FileReader();r.onload=()=>{let rows;try{rows=parseCSV(r.result);}catch(e){$("res").innerHTML='<div class="er">Could not read the CSV.</div>';return;}
+  const miss=COLS.filter(c=>!rows[0].map(low).map(x=>x.replace(/ /g,"_")).includes(c));
+  if(miss.length){$("res").innerHTML='<div class="er"><b>These columns are missing from the sheet:</b> '+esc(miss.join(", "))+'. Use the blank template for the exact column names.</div>';return;}
+  OUT=buildFromRows(toObjects(rows),{date:$("rd").value.trim(),version:$("rv").value.trim()});
+  let h="";
+  if(!OUT.errors.length)h+=`<div class="ok"><b>Ready.</b> ${OUT.courses.length} courses will be published${OUT.hidden?", "+OUT.hidden+" hidden":""}.</div>`;
+  h+=list(OUT.errors,"er","Fix these in the sheet, then build again");
+  h+=list(OUT.warnings,"wn","Check these (not blocking)");
+  if(OUT.pending.length){const names=OUT.pending.map(p=>"- "+p.name+" (id: "+p.id+")").join("\n");
+   h+=`<div class="pd"><b>${OUT.pending.length} courses have no AI-risk numbers yet, so they are left out.</b> Copy this list into your AI tool with the command RESEARCH RISK from the maintenance guide, paste the numbers back into the sheet, then build again.<textarea readonly>${esc(names)}</textarea></div>`;}
+  if(!OUT.errors.length&&OUT.courses.length){h+='<button class="btn g" onclick="dl(\'data.js\',OUT.dataJs)">Download data.js</button><button class="btn g" onclick="dl(\'match.js\',OUT.matchJs)">Download match.js</button><div class="small">Upload both to GitHub, replacing the old ones.</div>';}
+  $("res").innerHTML=h;};r.readAsText(f);}
+function readFile(inp){return new Promise((ok,no)=>{const f=inp.files[0];if(!f)return no("missing");const r=new FileReader();r.onload=()=>ok(r.result);r.readAsText(f);});}
+async function chk(){try{const d=await readFile($("fd")),m=await readFile($("fm"));
+  const C=new Function(d.replace(/\bconst /g,"var ")+";return COURSES;")(),M=new Function(m.replace(/\bconst /g,"var ")+";return MATCH;")();
+  const r=checkFiles(C,M);$("res2").innerHTML=(r.errors.length?"":`<div class="ok"><b>Passed.</b> ${C.length} courses, no blocking errors.</div>`)+list(r.errors,"er","Errors")+list(r.warnings,"wn","Warnings");}
+ catch(e){$("res2").innerHTML='<div class="er">Choose both files. If you did, one of them has a syntax error: '+esc(e.message||e)+'</div>';}}
+function tpl(){const ex=["example-course-name","Active","Computer & IT","Software & programming","Example Course Name","3 yrs","40","55","18","28","Estimate","No","One or two sentences on why AI affects this course.","What AI is good at in this field","What stays human","AI skill to learn","Good colleges to study at","Yes","NextPath partner colleges","Fee range per year","analytical, creative","tech","maths","financial","Any","1","2","Any","None","Kerala","3","No","Tech & IT"];
+ const q=s=>'"'+String(s).replace(/"/g,'""')+'"';const t=COLS.join(",")+"\n"+ex.map(q).join(",")+"\n";
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download="course-master-blank.csv";document.body.appendChild(a);a.click();a.remove();}
+</script></body></html>

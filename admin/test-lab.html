@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NextPath Test Lab</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,'Segoe UI',sans-serif;background:#f0f4f8;color:#1f2937;padding:16px;font-size:13.5px;line-height:1.5}
+.w{max-width:900px;margin:0 auto}.hd{background:#1a56db;color:#fff;border-radius:16px 16px 0 0;padding:18px}.hd h1{font-size:19px}.hd p{font-size:12px;opacity:.85;margin-top:3px}
+.bx{background:#fff;padding:18px;border-radius:0 0 16px 16px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}label{font-size:11.5px;font-weight:700;color:#374151;display:block;margin-bottom:3px}
+select,input{width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13px;background:#fff}
+.btn{padding:10px 16px;border:0;border-radius:10px;background:#1a56db;color:#fff;font-weight:700;cursor:pointer;font-size:13.5px;margin:10px 8px 0 0}.btn.o{background:#fff;color:#1a56db;border:1.5px solid #1a56db}
+h2{font-size:14px;color:#1648c0;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.6px}
+.card{border:1.5px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0}.card.top{border-color:#1a56db;background:#f5f9ff}
+.good{color:#166534}.warn{color:#92400e}.bad{color:#b91c1c}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:5px 6px;border-bottom:1px solid #eef0f3;text-align:left}th{background:#f3f4f6}
+.pos{color:#166534}.neg{color:#b91c1c}.sm{font-size:12px;color:#6b7280}textarea{width:100%;height:70px;font-size:12px;padding:8px;border:1.5px solid #e5e7eb;border-radius:10px}
+.pill{display:inline-block;background:#eff6ff;color:#1a56db;border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 4px 2px 0}
+</style></head><body><div class="w">
+<div class="hd"><h1>NextPath Test Lab</h1><p>Try a student profile and see the exact result, the score behind every course, and why a course was or was not recommended. Nothing is saved.</p></div>
+<div class="bx">
+<div id="status" class="sm"></div>
+<h2>1. Student profile</h2>
+<div class="g" id="form"></div>
+<label style="margin-top:12px">Or load a preset test profile</label>
+<select id="preset" onchange="loadPreset()"><option value="">Choose a preset...</option></select>
+<button class="btn" onclick="run()">Run this profile</button><button class="btn o" onclick="copyRow()">Copy result as a text row</button>
+<div id="out"></div>
+<h2>3. Why was this course not recommended?</h2>
+<div class="g"><div><label>Course name (start typing)</label><input id="why" list="cl" placeholder="e.g. MBBS"></div></div>
+<button class="btn o" onclick="explain()">Explain</button>
+<datalist id="cl"></datalist><div id="exp"></div>
+<h2>Notes</h2><textarea id="notes" placeholder="Write what looks wrong here, then paste it into your test sheet or into your AI tool."></textarea>
+</div></div>
+<script src="../data.js"></script><script src="../match.js"></script><script src="../engine.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const F=[
+[0,"Free time style",[["analytical","Analytical (experiments)"],["social","Social (people)"],["creative","Creative"],["organized","Organised"]]],
+[1,"Group role",[["creative","Idea person"],["analytical","Researcher"],["social","Communicator"],["organized","Executor"]]],
+[2,"Work setting",[["medical","Hospital / clinic"],["tech","Tech company"],["business","Office / business"],["creative","Creative field"]]],
+[3,"Favourite subject",[["science","Science"],["math","Maths"],["humanities","Humanities"],["commerce","Commerce"]]],
+[4,"Success vision",[["financial","Financial stability"],["impact","Meaningful work"],["freedom","Freedom"],["achievement","Achievement"]]],
+[5,"Plus 2 stream",[["P","PCB"],["X","PCMB"],["M","PCM"],["C","Commerce"],["H","Humanities"]]],
+[6,"Feeling about stream",[["stream_love","Loved it"],["stream_forced","Forced"],["stream_mixed","Mixed"],["stream_lost","No idea"]]],
+[7,"Marks",[["high","Above 85%"],["medium","70-85%"],["low","55-70%"],["very_low","Below 55%"]]],
+[8,"Budget per year",[["budget_low","Under 50k"],["budget_mid","50k-2L"],["budget_high","2L-5L"],["budget_premium","Above 5L"]]],
+[9,"Location",[["kerala","Only Kerala"],["south","South India"],["india","Anywhere in India"],["abroad","Abroad"]]],
+[10,"Entrance exam",[["N","NEET"],["E","KEAM / JEE"],["O","CLAT/NATA/UCEED/NIFT/CUET"],["none","None"]]],
+[13,"Biggest worry",[["fees","Fees"],["jobs","Job prospects"],["parents","Parents"],["wrong_choice","Wrong choice"]]]];
+const PRESETS={
+"01 PCB, top marks, premium budget, NEET, medical":{"0": "analytical", "1": "social", "2": "medical", "3": "science", "4": "impact", "5": "P", "6": "stream_love", "7": "high", "8": "budget_premium", "9": "india", "10": "N", "13": "wrong_choice"},
+"02 PCB, stream forced, wants tech, medium marks":{"0": "analytical", "1": "analytical", "2": "tech", "3": "math", "4": "financial", "5": "P", "6": "stream_forced", "7": "medium", "8": "budget_mid", "9": "kerala", "10": "none", "13": "jobs"},
+"03 PCB, low marks, low budget, caring":{"0": "social", "1": "social", "2": "medical", "3": "science", "4": "impact", "5": "P", "6": "stream_love", "7": "low", "8": "budget_low", "9": "kerala", "10": "none", "13": "fees"},
+"04 Commerce, medium marks, low budget, finance":{"0": "organized", "1": "organized", "2": "business", "3": "commerce", "4": "financial", "5": "C", "6": "stream_love", "7": "medium", "8": "budget_low", "9": "kerala", "10": "none", "13": "jobs"},
+"05 Humanities, low marks, low budget, creative":{"0": "creative", "1": "creative", "2": "creative", "3": "humanities", "4": "freedom", "5": "H", "6": "stream_mixed", "7": "low", "8": "budget_low", "9": "kerala", "10": "none", "13": "parents"},
+"06 PCM, top marks, engineering, KEAM":{"0": "analytical", "1": "analytical", "2": "tech", "3": "math", "4": "financial", "5": "M", "6": "stream_love", "7": "high", "8": "budget_high", "9": "south", "10": "E", "13": "jobs"},
+"07 PCMB, no idea, top marks, NEET":{"0": "social", "1": "organized", "2": "business", "3": "science", "4": "impact", "5": "X", "6": "stream_lost", "7": "high", "8": "budget_high", "9": "india", "10": "N", "13": "wrong_choice"},
+"08 PCB, medium marks, mid budget, NEET, wants doctor":{"0": "social", "1": "analytical", "2": "medical", "3": "science", "4": "impact", "5": "P", "6": "stream_love", "7": "medium", "8": "budget_mid", "9": "kerala", "10": "N", "13": "wrong_choice"},
+"09 PCB, top marks, low budget, NEET, govt seat only":{"0": "analytical", "1": "social", "2": "medical", "3": "science", "4": "impact", "5": "P", "6": "stream_love", "7": "high", "8": "budget_low", "9": "kerala", "10": "N", "13": "fees"},
+"10 PCM, medium marks, creative, mid budget":{"0": "creative", "1": "creative", "2": "creative", "3": "math", "4": "freedom", "5": "M", "6": "stream_mixed", "7": "medium", "8": "budget_mid", "9": "south", "10": "none", "13": "parents"},
+"11 PCM, low marks, low budget, practical":{"0": "organized", "1": "analytical", "2": "tech", "3": "math", "4": "financial", "5": "M", "6": "stream_love", "7": "low", "8": "budget_low", "9": "kerala", "10": "none", "13": "fees"},
+"12 PCMB, top marks, wants engineering but family wants medicine":{"0": "analytical", "1": "analytical", "2": "tech", "3": "math", "4": "financial", "5": "X", "6": "stream_love", "7": "high", "8": "budget_high", "9": "india", "10": "E", "13": "parents"},
+"13 Commerce, top marks, high budget, achievement":{"0": "organized", "1": "social", "2": "business", "3": "commerce", "4": "achievement", "5": "C", "6": "stream_love", "7": "high", "8": "budget_premium", "9": "india", "10": "O", "13": "wrong_choice"},
+"14 Commerce, low marks, low budget, social":{"0": "social", "1": "social", "2": "business", "3": "commerce", "4": "impact", "5": "C", "6": "stream_forced", "7": "low", "8": "budget_low", "9": "kerala", "10": "none", "13": "jobs"},
+"15 Commerce, medium marks, creative":{"0": "creative", "1": "creative", "2": "creative", "3": "commerce", "4": "freedom", "5": "C", "6": "stream_forced", "7": "medium", "8": "budget_mid", "9": "kerala", "10": "none", "13": "parents"},
+"16 Humanities, top marks, law and public service":{"0": "social", "1": "analytical", "2": "business", "3": "humanities", "4": "achievement", "5": "H", "6": "stream_love", "7": "high", "8": "budget_mid", "9": "india", "10": "O", "13": "jobs"},
+"17 Humanities, medium marks, helping people":{"0": "social", "1": "social", "2": "business", "3": "humanities", "4": "impact", "5": "H", "6": "stream_love", "7": "medium", "8": "budget_low", "9": "kerala", "10": "none", "13": "fees"},
+"18 PCB, very low marks, low budget":{"0": "organized", "1": "social", "2": "medical", "3": "science", "4": "financial", "5": "P", "6": "stream_mixed", "7": "very_low", "8": "budget_low", "9": "kerala", "10": "none", "13": "fees"},
+"19 PCM, high marks, abroad, high budget, tech":{"0": "analytical", "1": "creative", "2": "tech", "3": "math", "4": "freedom", "5": "M", "6": "stream_love", "7": "high", "8": "budget_premium", "9": "abroad", "10": "none", "13": "wrong_choice"},
+"20 PCMB, medium marks, lost, mid budget":{"0": "organized", "1": "social", "2": "business", "3": "science", "4": "financial", "5": "X", "6": "stream_lost", "7": "medium", "8": "budget_mid", "9": "south", "10": "none", "13": "wrong_choice"}};
+let last=null;
+function init(){$("status").textContent=typeof COURSES==="undefined"||typeof MATCH==="undefined"||typeof scoreAll==="undefined"?"Could not load data.js, match.js or engine.js. Keep this file inside the admin folder next to the main files.":"Loaded "+COURSES.length+" courses. Data version "+REPORT.version+" ("+REPORT.date+").";
+ $("form").innerHTML=F.map(f=>`<div><label>${f[1]}</label><select id="a${f[0]}">${f[2].map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select></div>`).join("");
+ $("preset").innerHTML+=Object.keys(PRESETS).map(k=>`<option>${k}</option>`).join("");
+ $("cl").innerHTML=COURSES.map(c=>`<option value="${c.n.replace(/"/g,"&quot;")}">`).join("");}
+function getAns(){const a={};F.forEach(f=>a[f[0]]=$("a"+f[0]).value);return a;}
+function loadPreset(){const p=PRESETS[$("preset").value];if(!p)return;Object.keys(p).forEach(k=>$("a"+k).value=p[k]);run();}
+function lines(r,u){return fitLines(r,u).map(l=>`<div class="${l.t}">${l.t==="good"?"OK":l.t==="warn"?"Note":"Problem"}: ${l.x}</div>`).join("");}
+function run(){const ans=getAns();const {u,all}=scoreAll(ans);const top=pickTop(all,3);const used=new Set(top.map(r=>r.c.id));last={ans:ans,top:top,u:u,all:all,backups:[]};
+ let h="<h2>2. Result</h2>";
+ top.forEach((r,i)=>{const bk=backupsFor(r,all,used,2);last.backups.push(bk.map(b=>b.c.n));
+  h+=`<div class="card ${i===0?"top":""}"><b>${i+1}. ${r.c.n}</b> <span class="sm">score ${r.s.toFixed(1)} | AI risk with skills ${r.c.a[0]}-${r.c.a[1]}%${r.c.na?" | NextPath admission":""}</span><div>${r.why.map(w=>`<span class="pill">${w}</span>`).join("")}</div>${lines(r,u)}<div class="sm" style="margin-top:6px"><b>Backups:</b> ${bk.length?bk.map(b=>b.c.n+" ("+b.s.toFixed(1)+")").join(", "):"none found"}</div></div>`;});
+ if(!top.length)h+='<div class="card bad">No course passed the filters for this profile.</div>';
+ const rows=all.slice().sort((a,b)=>b.s-a.s).slice(0,25);
+ h+=`<h2>Top 25 courses by score</h2><table><tr><th>#</th><th>Course</th><th>Score</th><th>Status</th></tr>${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.c.n}</td><td>${r.s.toFixed(1)}</td><td>${r.hard?(r.soft.length?"stretch ("+r.soft.join(", ")+")":"eligible"):"<span class='neg'>not eligible</span>"}</td></tr>`).join("")}</table><p class="sm">${all.filter(r=>r.hard).length} of ${all.length} scored courses are eligible for this student.</p>`;
+ $("out").innerHTML=h;}
+function explain(){if(!last){$("exp").innerHTML="<p class='sm'>Run a profile first.</p>";return;}const q=$("why").value.trim().toLowerCase();const r=last.all.find(x=>x.c.n.toLowerCase()===q)||last.all.find(x=>x.c.n.toLowerCase().includes(q));
+ if(!r){const c=COURSES.find(x=>x.n.toLowerCase().includes(q));$("exp").innerHTML=c?"<p class='sm'>"+c.n+" is not scored. It is marked as a career path (skip) or has no entry in match.js.</p>":"<p class='sm'>No course found with that name.</p>";return;}
+ const rank=last.all.slice().sort((a,b)=>b.s-a.s).findIndex(x=>x===r)+1;
+ $("exp").innerHTML=`<div class="card"><b>${r.c.n}</b> ranks ${rank} of ${last.all.length}. Total score ${r.s.toFixed(1)}.${r.hard?"":" <span class='bad'>Removed because the student is not eligible.</span>"}<table><tr><th>Part</th><th>Points</th></tr>${r.parts.map(p=>`<tr><td>${p[0]}</td><td class="${p[1]>=0?"pos":"neg"}">${p[1]>=0?"+":""}${p[1].toFixed(1)}</td></tr>`).join("")}</table>${lines(r,last.u)}</div>`;}
+function copyRow(){if(!last){return;}const t=[$("preset").value||"custom profile",JSON.stringify(last.ans),last.top.map(r=>r.c.n).join(" | "),last.backups.map(b=>b.join(" / ")).join(" | "),REPORT.version].join("\t");navigator.clipboard.writeText(t).then(()=>alert("Copied. Paste it into your test sheet."));}
+init();
+</script></body></html>

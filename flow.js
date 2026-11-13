@@ -9,6 +9,13 @@
  function draw(from,to){
   if(reduced.matches)return;
   while(layer.querySelectorAll('g').length>=24)layer.querySelector('g').remove();
+  // A transformed dialog establishes the fixed overlay's coordinate space.
+  const bounds=layer.getBoundingClientRect();
+  const scaleX=bounds.width/(layer.clientWidth||bounds.width||1)||1;
+  const scaleY=bounds.height/(layer.clientHeight||bounds.height||1)||1;
+  const local=point=>({x:(point.x-bounds.left)/scaleX,y:(point.y-bounds.top)/scaleY});
+  from=local(from);
+  to=local(to);
   const dx=to.x-from.x,dy=to.y-from.y,length=Math.hypot(dx,dy);if(length<3)return;
   const bend=Math.min(2,length*.02),nx=-dy/length*bend,ny=dx/length*bend;
   const d=`M${from.x} ${from.y} Q${(from.x+to.x)/2+nx} ${(from.y+to.y)/2+ny} ${to.x} ${to.y}`;
@@ -18,31 +25,8 @@
  }
  function queue(point,target){if(reduced.matches)return;const host=target?.closest?.('dialog')||document.body;if(layer.parentElement!==host){layer.querySelectorAll('g').forEach(g=>g.remove());host.append(layer);previous=null;}if(!previous){previous=point;return;}pending=point;if(frame===null)frame=requestAnimationFrame(()=>{frame=null;if(previous&&pending){draw(previous,pending);previous=pending;pending=null;}});}
  const point=touch=>({x:touch.clientX,y:touch.clientY});
- let gesture=null,pinch=null;
- const page=document.querySelector('#page-content');
- const touchDistance=touches=>Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);
- function resetZoom(){
-  if(!pinch)return;
-  pinch=null;
-  page.classList.remove('is-pinching');
-  page.style.transform='';
- }
- function startZoom(event){
-  if(event.touches.length<2||!page.contains(event.target))return;
-  if(event.cancelable)event.preventDefault();
-  if(pinch||event.touches.length!==2)return;
-  const [first,second]=event.touches;
-  const bounds=page.getBoundingClientRect();
-  pinch={distance:Math.max(1,touchDistance(event.touches))};
-  page.style.transformOrigin=(first.clientX+second.clientX)/2-bounds.left+'px '+((first.clientY+second.clientY)/2-bounds.top)+'px';
-  page.classList.add('is-pinching');
- }
+ let gesture=null;
  document.addEventListener('touchmove',event=>{
-  if(pinch&&event.touches.length>=2&&event.cancelable)event.preventDefault();
-  if(pinch&&event.touches.length===2){
-   const scale=Math.min(2.5,Math.max(1,touchDistance(event.touches)/pinch.distance));
-   page.style.transform=`scale(${scale})`;
-  }
   const modal=document.querySelector('dialog[open]');
   if(!modal||!event.cancelable)return;
   const body=event.target.closest('.dialog-body');
@@ -60,7 +44,7 @@
   if(event.isPrimary&&event.pointerType!=='touch')queue(point(event),event.target);
  },{passive:true});
  document.addEventListener('touchstart',event=>{
-  if(event.touches.length!==1){cancelGesture();end();startZoom(event);return;}
+  if(event.touches.length!==1){cancelGesture();end();return;}
   end();
   const at=point(event.touches[0]);
   const option=event.target.closest(optionSelector);
@@ -69,13 +53,7 @@
   queue({x:at.x-9,y:at.y+5},event.target);
   if(previous)draw(previous,at);
   previous=at;
- },{passive:false});
- function suppressNativePinch(event){
-  if(page.contains(event.target)&&event.cancelable)event.preventDefault();
- }
- document.addEventListener('gesturestart',suppressNativePinch,{passive:false});
- document.addEventListener('gesturechange',suppressNativePinch,{passive:false});
- document.addEventListener('gestureend',resetZoom);
+ },{passive:true});
  document.addEventListener('touchmove',event=>{
   if(event.touches.length!==1){cancelGesture();end();return;}
   const at=point(event.touches[0]);
@@ -84,7 +62,6 @@
  },{passive:true});
  document.addEventListener('touchend',event=>{
   clearPress();
-  if(event.touches.length<2)resetZoom();
   if(event.touches.length===0){
    if(gesture&&!gesture.cancelled&&gesture.option){
     const at=point(event.changedTouches[0]);
@@ -93,7 +70,7 @@
    end();
   }
  },{passive:true});
- document.addEventListener('touchcancel',()=>{cancelGesture();end();resetZoom();},{passive:true});
+ document.addEventListener('touchcancel',()=>{cancelGesture();end();},{passive:true});
  document.addEventListener('click',event=>{
   const option=event.target.closest(optionSelector);
   const touchClick=event.pointerType==='touch'||event.sourceCapabilities?.firesTouchEvents||
@@ -104,8 +81,8 @@
   }
   if(touchClick)gesture=null;
  },true);
- document.addEventListener('pointerout',event=>{if(event.pointerType!=='touch'&&!event.relatedTarget){end();resetZoom();}},{passive:true});
+ document.addEventListener('pointerout',event=>{if(event.pointerType!=='touch'&&!event.relatedTarget){end();}},{passive:true});
  reduced.addEventListener('change',()=>{end();layer.querySelectorAll('g').forEach(g=>g.remove());});
- window.addEventListener('blur',()=>{cancelGesture();end();resetZoom();});
- window.addEventListener('pagehide',()=>{cancelGesture();end();resetZoom();});
+ window.addEventListener('blur',()=>{cancelGesture();end();});
+ window.addEventListener('pagehide',()=>{cancelGesture();end();});
 })();

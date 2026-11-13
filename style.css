@@ -282,6 +282,4 @@ dialog[open],.dialog-body{overscroll-behavior:contain}
 @media(pointer:coarse){
  html,body,#page-content,#page-content :is(button,a,input),dialog,.dialog-body,dialog :is(button,a){touch-action:pan-y}
 }
-#page-content{transition:transform .22s ease-out}
-#page-content.is-pinching{transition:none}
-@media(prefers-reduced-motion:reduce){#page-content{transition:none}}
+dialog > .interaction-flow{position:absolute}

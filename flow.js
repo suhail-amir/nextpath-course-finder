@@ -17,9 +17,59 @@
   ribbon.addEventListener('animationend',()=>ribbon.remove(),{once:true});layer.append(ribbon);
  }
  function queue(point,target){if(reduced.matches)return;const host=target?.closest?.('dialog')||document.body;if(layer.parentElement!==host){layer.querySelectorAll('g').forEach(g=>g.remove());host.append(layer);previous=null;}if(!previous){previous=point;return;}pending=point;if(frame===null)frame=requestAnimationFrame(()=>{frame=null;if(previous&&pending){draw(previous,pending);previous=pending;pending=null;}});}
- document.addEventListener('pointerdown',event=>{if(!event.isPrimary||reduced.matches)return;previous={x:event.clientX,y:event.clientY};},{passive:true});
- document.addEventListener('pointermove',event=>{if(event.isPrimary&&event.pointerType!=='touch')queue({x:event.clientX,y:event.clientY},event.target);},{passive:true});
- document.addEventListener('touchmove',event=>{if(event.touches.length===1){const touch=event.touches[0];queue({x:touch.clientX,y:touch.clientY},event.target);}},{passive:true});
- const end=()=>{previous=null;pending=null;if(frame!==null){cancelAnimationFrame(frame);frame=null;}};
- document.addEventListener('pointerup',event=>{if(event.pointerType!=='mouse')end();},{passive:true});document.addEventListener('touchend',end,{passive:true});document.addEventListener('touchcancel',end,{passive:true});document.addEventListener('pointerout',event=>{if(!event.relatedTarget)end();},{passive:true});document.addEventListener('pointercancel',end,{passive:true});reduced.addEventListener('change',()=>{end();layer.querySelectorAll('g').forEach(g=>g.remove());});window.addEventListener('blur',end);window.addEventListener('pagehide',end);
+ const point=touch=>({x:touch.clientX,y:touch.clientY});
+ let gesture=null;
+ const optionSelector='.option,.course-btn';
+ function clearPress(){gesture?.option?.classList.remove('is-pressed');}
+ function cancelGesture(){if(gesture)gesture.cancelled=true;clearPress();}
+ const end=()=>{
+  if(previous&&pending)draw(previous,pending);
+  previous=null;pending=null;
+  if(frame!==null){cancelAnimationFrame(frame);frame=null;}
+ };
+ document.addEventListener('pointermove',event=>{
+  if(event.isPrimary&&event.pointerType!=='touch')queue(point(event),event.target);
+ },{passive:true});
+ document.addEventListener('touchstart',event=>{
+  if(event.touches.length!==1){cancelGesture();end();return;}
+  end();
+  const at=point(event.touches[0]);
+  const option=event.target.closest(optionSelector);
+  gesture={at,option,cancelled:false};
+  option?.classList.add('is-pressed');
+  queue({x:at.x-9,y:at.y+5},event.target);
+  if(previous)draw(previous,at);
+  previous=at;
+ },{passive:true});
+ document.addEventListener('touchmove',event=>{
+  if(event.touches.length!==1){cancelGesture();end();return;}
+  const at=point(event.touches[0]);
+  if(gesture&&Math.hypot(at.x-gesture.at.x,at.y-gesture.at.y)>8)cancelGesture();
+  queue(at,event.target);
+ },{passive:true});
+ document.addEventListener('touchend',event=>{
+  clearPress();
+  if(event.touches.length===0){
+   if(gesture&&!gesture.cancelled&&gesture.option){
+    const at=point(event.changedTouches[0]);
+    if(!gesture.option.contains(document.elementFromPoint(at.x,at.y)))cancelGesture();
+   }
+   end();
+  }
+ },{passive:true});
+ document.addEventListener('touchcancel',()=>{cancelGesture();end();},{passive:true});
+ document.addEventListener('click',event=>{
+  const option=event.target.closest(optionSelector);
+  const touchClick=event.pointerType==='touch'||event.sourceCapabilities?.firesTouchEvents||
+   (!event.pointerType&&event.detail>0&&gesture);
+  if(option&&touchClick&&gesture&&(gesture.cancelled||gesture.option!==option)){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+  }
+  if(touchClick)gesture=null;
+ },true);
+ document.addEventListener('pointerout',event=>{if(event.pointerType!=='touch'&&!event.relatedTarget)end();},{passive:true});
+ reduced.addEventListener('change',()=>{end();layer.querySelectorAll('g').forEach(g=>g.remove());});
+ window.addEventListener('blur',()=>{cancelGesture();end();});
+ window.addEventListener('pagehide',()=>{cancelGesture();end();});
 })();

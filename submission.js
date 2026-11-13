@@ -31,6 +31,7 @@ const CompassSubmission = (() => {
   const response = await fetch(endpoint, {
    method: 'POST',
    credentials: 'omit',
+   keepalive: true,
    headers: {'Content-Type': 'text/plain;charset=UTF-8'},
    body: JSON.stringify(fields),
    signal: AbortSignal.timeout(12000)

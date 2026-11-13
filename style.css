@@ -250,6 +250,7 @@ dialog[open].is-closing::backdrop{animation:dialog-backdrop-leave .28s ease-in b
 @media(prefers-reduced-motion:reduce){.banner-tools.language-leaving .language{animation:none}}
 
 @media (hover:hover) and (pointer:fine){
+ .option:hover,.course-btn:hover{border-color:#0071bc;background:#eff6ff}
  .option:hover .option-icon{animation:nudge .55s ease}
 }
 @media (pointer:coarse){
@@ -257,11 +258,22 @@ dialog[open].is-closing::backdrop{animation:dialog-backdrop-leave .28s ease-in b
  .interaction-flow .flow-soft{stroke-width:9}
  .interaction-flow .flow-core{stroke:#0071bcb3;stroke-width:2}
 }
-.revisit-next{position:relative;overflow:hidden;animation:revisit-glow 3s ease-in-out infinite}
-.revisit-next::after{content:'';position:absolute;inset:0 auto 0 0;width:55%;background:linear-gradient(105deg,transparent,#fff6,transparent);pointer-events:none;animation:review-sheen 2.6s ease-in-out infinite}
-@keyframes revisit-glow{50%{box-shadow:0 0 0 4px #0071bc29}}
+.nav:has(.revisit-next){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.nav:has(.revisit-next) .back,.revisit-next{width:100%;min-height:46px}
+.revisit-next{justify-content:center;gap:6px;animation:revisit-fade 3s ease-in-out infinite}
+@keyframes revisit-fade{50%{opacity:.8}}
 #submission-status{margin:12px 0;color:#374151}
 #submission-status .primary{margin-top:8px}
 @media(prefers-reduced-motion:reduce){
- .revisit-next,.revisit-next::after{animation:none}
+ .revisit-next{animation:none}
 }
+
+html{overflow-x:clip;overscroll-behavior-x:none}
+html:has(dialog[open]){overflow:hidden}
+dialog[open],.dialog-body{overscroll-behavior:contain}
+@media(pointer:coarse){
+ html,body,#page-content,#page-content :is(button,a,input),dialog,.dialog-body,dialog :is(button,a){touch-action:pan-y}
+ #page-content{transition:transform .22s ease-out}
+ #page-content.is-pinching{transition:none}
+}
+@media(prefers-reduced-motion:reduce){#page-content{transition:none}}

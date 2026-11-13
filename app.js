@@ -222,9 +222,10 @@
    showResults();
    if(collect)void saveContact();
    return;}
-  if(state.phase==='quiz'){if(questions[state.q].type==='options'&&!state.answers[state.q])return;state.completed.add(state.q);move(()=>{if(state.q<questions.length-1)state.q++;else if(state.reviewing)endReview();else{state.phase='contact';state.contact=0;}},{reverse:state.reviewing&&state.q===questions.length-1});}}
+  if(state.phase==='quiz'){if(questions[state.q].type==='options'&&!state.answers[state.q])return;state.completed.add(state.q);move(()=>{if(state.q<questions.length-1)state.q++;else if(state.reviewing)endReview();else{state.phase='contact';state.contact=0;}});}}
  function endReview(){state.reviewing=false;state.phase='result';}
  function back(){
+  if(state.busy)return;
   const home=state.phase==='quiz'&&state.q===0&&!state.reviewing;
   cancelMove();
   move(()=>{

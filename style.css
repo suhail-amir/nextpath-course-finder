@@ -226,8 +226,8 @@ dialog[open]::backdrop{animation:dialog-backdrop-enter .36s ease-out both}
 @media(prefers-reduced-motion:reduce){.banner-tools:not([hidden]) .language,.review-return::after{animation:none}.review-return::after{display:none}}
 
 .header.journey-returning::after{animation-direction:reverse}
-.outgoing.outgoing-reverse{animation-name:exit-reverse}
-#main.travel-back :is(.stage,.welcome):not(.outgoing){animation-name:enter-reverse}
+#main .outgoing.outgoing-reverse{animation-name:exit-reverse}
+#main.travel-back :is(.stage,.welcome):not(.outgoing){animation:enter-reverse .35s var(--ease) both}
 @keyframes exit-reverse{to{opacity:0;transform:translateY(10px)}}
 @keyframes enter-reverse{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .review-return::before{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 2px #c5ebff,inset 0 0 10px #c5ebff55;pointer-events:none;animation:review-edge-glow 2.8s ease-in-out infinite}
@@ -260,12 +260,20 @@ dialog[open].is-closing::backdrop{animation:dialog-backdrop-leave .28s ease-in b
 }
 .nav:has(.revisit-next){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .nav:has(.revisit-next) .back,.revisit-next{width:100%;min-height:46px}
-.revisit-next{justify-content:center;gap:6px;animation:revisit-fade 3s ease-in-out infinite}
-@keyframes revisit-fade{50%{opacity:.8}}
+.revisit-next{
+ position:relative;overflow:hidden;justify-content:center;gap:6px;
+ background:linear-gradient(165deg,#438fc5 0%,#0071bc 48%,#005b96 100%);
+ box-shadow:inset 0 1px 0 #ffffff55;
+}
+.revisit-next::after{
+ content:'';position:absolute;inset:0 auto 0 0;width:55%;pointer-events:none;
+ background:linear-gradient(105deg,transparent,#fff5,transparent);
+ animation:review-sheen 3.6s ease-in-out infinite;
+}
 #submission-status{margin:12px 0;color:#374151}
 #submission-status .primary{margin-top:8px}
 @media(prefers-reduced-motion:reduce){
- .revisit-next{animation:none}
+ .revisit-next::after{animation:none}
 }
 
 html{overflow-x:clip;overscroll-behavior-x:none}
@@ -273,7 +281,7 @@ html:has(dialog[open]){overflow:hidden}
 dialog[open],.dialog-body{overscroll-behavior:contain}
 @media(pointer:coarse){
  html,body,#page-content,#page-content :is(button,a,input),dialog,.dialog-body,dialog :is(button,a){touch-action:pan-y}
- #page-content{transition:transform .22s ease-out}
- #page-content.is-pinching{transition:none}
 }
+#page-content{transition:transform .22s ease-out}
+#page-content.is-pinching{transition:none}
 @media(prefers-reduced-motion:reduce){#page-content{transition:none}}

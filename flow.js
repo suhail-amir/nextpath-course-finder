@@ -28,7 +28,9 @@
   page.style.transform='';
  }
  function startZoom(event){
-  if(pinch||event.touches.length!==2||!page.contains(event.target))return;
+  if(event.touches.length<2||!page.contains(event.target))return;
+  if(event.cancelable)event.preventDefault();
+  if(pinch||event.touches.length!==2)return;
   const [first,second]=event.touches;
   const bounds=page.getBoundingClientRect();
   pinch={distance:Math.max(1,touchDistance(event.touches))};
@@ -36,8 +38,8 @@
   page.classList.add('is-pinching');
  }
  document.addEventListener('touchmove',event=>{
+  if(pinch&&event.touches.length>=2&&event.cancelable)event.preventDefault();
   if(pinch&&event.touches.length===2){
-   if(event.cancelable)event.preventDefault();
    const scale=Math.min(2.5,Math.max(1,touchDistance(event.touches)/pinch.distance));
    page.style.transform=`scale(${scale})`;
   }
@@ -67,7 +69,13 @@
   queue({x:at.x-9,y:at.y+5},event.target);
   if(previous)draw(previous,at);
   previous=at;
- },{passive:true});
+ },{passive:false});
+ function suppressNativePinch(event){
+  if(page.contains(event.target)&&event.cancelable)event.preventDefault();
+ }
+ document.addEventListener('gesturestart',suppressNativePinch,{passive:false});
+ document.addEventListener('gesturechange',suppressNativePinch,{passive:false});
+ document.addEventListener('gestureend',resetZoom);
  document.addEventListener('touchmove',event=>{
   if(event.touches.length!==1){cancelGesture();end();return;}
   const at=point(event.touches[0]);

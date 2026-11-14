@@ -3,9 +3,12 @@ const CompassSubmission = (() => {
  const endpoint = document.querySelector('meta[name="compass-submissions"]')?.content;
  const answerColumns = ['q1','q2','q3','q4','q5','stream','streamComfort','marks','budget','locationPref','entrance','courseStatus',null,'worry'];
 
+ const shortReferences=document.querySelector('meta[name="compass-reference-format"]')?.content==='nextpath';
+
  function create(state, recommendations) {
   const fields = {
    refId: crypto.randomUUID(),
+   ...(shortReferences?{referenceFormat:'nextpath'}:{}),
    name: state.name.trim(),
    phone: '+91' + CompassCore.normalizePhone(state.phone),
    location: state.region === 'kerala' ? state.district + ', Kerala' : state.place.trim() + ', ' + state.stateName.trim(),
@@ -38,7 +41,11 @@ const CompassSubmission = (() => {
   });
   if (!response.ok) throw new Error('Save failed');
   const receipt = await response.json();
-  if (receipt.status !== 'ok' || receipt.refId !== fields.refId) throw new Error('Save unconfirmed');
+  const confirmed=fields.referenceFormat==='nextpath'
+   ? receipt.requestId===fields.refId && /^NP-[0-9A-HJKMNP-TV-Z]{4}$/.test(receipt.refId)
+   : receipt.refId===fields.refId;
+  if (receipt.status !== 'ok' || !confirmed) throw new Error('Save unconfirmed');
+  return receipt.refId;
  }
  return {enabled: Boolean(endpoint), create, save};
 })();

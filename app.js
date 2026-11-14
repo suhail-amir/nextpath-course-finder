@@ -42,7 +42,11 @@
   return `<div class="nav"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?`<button type="button" class="primary${revisit?' revisit-next':''}" data-action="next">${next}${arrow}</button>`:`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;}
  function question(){const q=questions[state.q],en=EN_QUESTIONS[state.q],ml=ML_QUESTIONS[state.q];let h=heading(esc(t(en[0],ml[0])),esc(t(en[1],ml[1])),`${t('Question','ചോദ്യം')} ${String(state.q+1).padStart(2,'0')} / 14`);
   if(state.reviewing)h=`<button type="button" class="review-return" data-action="return-results">${t('Back to Results','ഫലത്തിലേക്ക് മടങ്ങുക')} <span aria-hidden="true">→</span></button>`+h;
-  if(q.type==='course_select')return h+coursePicker()+nav(t('Continue','തുടരാം'));
+  if(q.type==='course_select'){
+   const cue=(state.answers[12]||[]).length
+    ? `<div class="course-continue-cue"><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>` : '';
+   return h+cue+coursePicker()+nav(t('Continue','തുടരാം'));
+  }
   h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>'+nav();return h;
  }
  function coursePicker(){let h='';const sections=[['health',t('Health & care','ആരോഗ്യ മേഖല')],['tech',t('Technology & engineering','ടെക്‌നോളജി & എൻജിനീയറിങ്')],['business',t('Business & commerce','ബിസിനസ് & കൊമേഴ്‌സ്')],['other',t('Other paths','മറ്റു വഴികൾ')]];
@@ -56,33 +60,44 @@
  function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
  function field(id,label,placeholder,attrs=''){return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" data-field="${id}" value="${esc(state[id])}" placeholder="${placeholder}" ${attrs}></div>`;}
- function contact(){return `<form id="contact-form" novalidate>${heading(t('A Little About You','ഇനി നിങ്ങളെക്കുറിച്ച്'),t('One last step before your results.','ഫലം കാണുന്നതിന് മുമ്പ് ഒരു ചെറിയ കാര്യം കൂടി.'))}${field('name',t('Your Name','നിങ്ങളുടെ പേര്'),t('Enter your name','പേര് എഴുതൂ'),'autocomplete="name" maxlength="80" required')}<section id="phone-section" ${C.validName(state.name)?'':'hidden'}>${field('phone',t('WhatsApp Number','WhatsApp നമ്പർ'),t('Your 10-digit mobile number','10 അക്ക മൊബൈൽ നമ്പർ'),'type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"')}<p class="helper">${t('Indian mobile number · +91','ഇന്ത്യൻ മൊബൈൽ നമ്പർ · +91')}</p></section><section id="location-section" ${C.validName(state.name)&&C.normalizePhone(state.phone)?'':'hidden'}><h2>${t('Where Are You From?','നിങ്ങൾ എവിടെയാണ്?')}</h2><div class="segments">${[['kerala',t('Kerala','കേരളം')],['outside',t('Outside Kerala','കേരളത്തിന് പുറത്ത്')]].map(([id,label])=>`<button type="button" data-region="${id}" aria-pressed="${state.region===id}">${label}</button>`).join('')}</div>${state.region==='kerala'?`<div class="districts" id="districts">${districtButtons('')}</div>`:field('stateName',t('State / Union Territory','സംസ്ഥാനം / കേന്ദ്രഭരണ പ്രദേശം'),t('Enter your state','സംസ്ഥാനം'),'autocomplete="address-level1" maxlength="80"')+field('place',t('Town / City','പട്ടണം / നഗരം'),t('Enter your town','പട്ടണം'),'autocomplete="address-level2" maxlength="80"')}</section>${collect?`<p class="helper">${t('When you tap See Results, NextPath EduCare saves your contact details and answers for course guidance and may contact you.','ഫലം കാണുക അമർത്തുമ്പോൾ കോഴ്‌സ് സഹായത്തിനായി NextPath EduCare നിങ്ങളുടെ വിവരങ്ങളും മറുപടികളും സൂക്ഷിക്കും. ഞങ്ങൾ നിങ്ങളെ ബന്ധപ്പെടാം.')}</p>`:''}<p class="error" id="error" role="alert"></p></form>`;}
+ function contact(){return `<form id="contact-form" novalidate>${heading(t('A Little About You','ഇനി നിങ്ങളെക്കുറിച്ച്'),t('One last step before your results.','ഫലം കാണുന്നതിന് മുമ്പ് ഒരു ചെറിയ കാര്യം കൂടി.'))}${field('name',t('Your Name','നിങ്ങളുടെ പേര്'),t('Enter your name','പേര് എഴുതൂ'),'autocomplete="name" maxlength="80" required')}<section id="phone-section" ${C.validName(state.name)?'':'hidden'}>${field('phone',t('WhatsApp Number','WhatsApp നമ്പർ'),t('Your 10-digit mobile number','10 അക്ക മൊബൈൽ നമ്പർ'),'type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"')}<p class="helper">${t('Indian mobile number · +91','ഇന്ത്യൻ മൊബൈൽ നമ്പർ · +91')}</p></section><section id="location-section" ${C.validName(state.name)&&C.normalizePhone(state.phone)?'':'hidden'}><h2>${t('Where Are You From?','നിങ്ങൾ എവിടെയാണ്?')}</h2><div class="segments">${[['kerala',t('Kerala','കേരളം')],['outside',t('Outside Kerala','കേരളത്തിന് പുറത്ത്')]].map(([id,label])=>`<button type="button" data-region="${id}" aria-pressed="${state.region===id}">${label}</button>`).join('')}</div>${state.region==='kerala'?`<div class="districts" id="districts">${districtButtons('')}</div>`:field('stateName',t('State / Union Territory','സംസ്ഥാനം / കേന്ദ്രഭരണ പ്രദേശം'),t('Enter your state','സംസ്ഥാനം'),'autocomplete="address-level1" maxlength="80"')+field('place',t('Town / City','പട്ടണം / നഗരം'),t('Enter your town','പട്ടണം'),'autocomplete="address-level2" maxlength="80"')}</section>${collect?`<p class="helper">${t('When you tap See Results, NextPath EduCare saves your contact details and answers for course guidance and may contact you.','ഫലം കാണുക അമർത്തുമ്പോൾ കോഴ്‌സ് സഹായത്തിനായി NextPath EduCare നിങ്ങളുടെ വിവരങ്ങളും മറുപടികളും സൂക്ഷിക്കും. ഞങ്ങൾ നിങ്ങളെ ബന്ധപ്പെടാം.')}</p>`:''}<p class="error" id="error" role="alert"></p><div class="contact-form-end" aria-hidden="true"></div></form>`;}
  const contactActions=document.querySelector('#contact-actions');
- let contactFrame;
- function updateContactActions(){
-  if(contactFrame)return;
-  contactFrame=requestAnimationFrame(()=>{
-   contactFrame=null;
-   if(contactActions.hidden)return;
-   const viewport=window.visualViewport;
-   const inset=viewport?Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop):0;
-   contactActions.style.setProperty('--keyboard-inset',inset+'px');
-   document.documentElement.style.setProperty('--contact-actions-height',contactActions.offsetHeight+'px');
-   const form=document.querySelector('#contact-form');
-   contactActions.classList.toggle('has-more',form.getBoundingClientRect().bottom>contactActions.getBoundingClientRect().top+4);
-  });
+ let contactEndObserver;
+ let contactInset=0;
+ function positionContactActions(){
+  if(contactActions.hidden)return;
+  const viewport=window.visualViewport;
+  const inset=viewport?Math.max(0,Math.round(window.innerHeight-viewport.height-viewport.offsetTop)):0;
+  if(inset===contactInset)return;
+  contactInset=inset;
+  contactActions.style.setProperty('--keyboard-inset',inset+'px');
  }
- window.addEventListener('scroll',updateContactActions,{passive:true});
- window.addEventListener('resize',updateContactActions);
- window.visualViewport?.addEventListener('resize',updateContactActions);
- window.visualViewport?.addEventListener('scroll',updateContactActions);
- new ResizeObserver(updateContactActions).observe(main);
- new ResizeObserver(updateContactActions).observe(contactActions);
+ window.visualViewport?.addEventListener('resize',positionContactActions);
+ window.visualViewport?.addEventListener('scroll',positionContactActions);
+ new ResizeObserver(()=>{
+  if(contactActions.hidden)return;
+  const height=contactActions.offsetHeight;
+  document.documentElement.style.setProperty('--contact-actions-height',height+'px');
+  contactEndObserver?.disconnect();
+  contactEndObserver=new IntersectionObserver(([entry])=>{
+   contactActions.classList.toggle('has-more',!entry.isIntersecting);
+  },{rootMargin:`0px 0px -${height+10}px 0px`});
+  contactEndObserver.observe(document.querySelector('#contact-form').lastElementChild);
+ }).observe(contactActions);
  function renderContactActions(){
   contactActions.hidden=state.phase!=='contact';
-  if(contactActions.hidden){contactActions.replaceChildren();return;}
+  if(contactActions.hidden){
+   contactEndObserver?.disconnect();
+   contactActions.replaceChildren();
+   return;
+  }
   contactActions.innerHTML=`<span class="contact-scroll-cue" aria-hidden="true"></span><div class="contact-action-buttons"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button><button type="submit" form="contact-form" class="primary" id="contact-submit" ${C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation()?'':'disabled'}>${t('See Results','ഫലം കാണുക')}${arrow}</button></div>`;
-  updateContactActions();
+  contactActions.classList.remove('has-more');
+  positionContactActions();
+  if(contactEndObserver){
+   contactEndObserver.disconnect();
+   contactEndObserver.observe(document.querySelector('.contact-form-end'));
+  }
  }
  function updateContact(){if(state.phase!=='contact')return;document.querySelector('#phone-section').hidden=!C.validName(state.name);document.querySelector('#location-section').hidden=!(C.validName(state.name)&&C.normalizePhone(state.phone));document.querySelector('#contact-submit').disabled=!(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation());}
  function districtButtons(search){const query=search.toLowerCase().trim();const items=C.districts.map((name,i)=>({name,ml:C.districtML[i]})).filter(d=>(d.name+' '+d.ml).toLowerCase().includes(query));return items.length?items.map(d=>`<button type="button" class="option ${state.district===d.name?'selected':''}" data-district="${d.name}" aria-pressed="${state.district===d.name}"><span class="copy">${t(d.name,d.ml)}</span><span class="mark" aria-hidden="true">${state.district===d.name?'✓':'↗'}</span></button>`).join(''):`<p class="small-note" role="status">${t('No district found. Try another spelling.','ജില്ല കണ്ടെത്തിയില്ല. മറ്റൊരു രീതിയിൽ എഴുതൂ.')}</p>`;}
@@ -300,7 +315,12 @@
   if(b.dataset.remove){state.answers[12]=(state.answers[12]||[]).filter(id=>id!==b.dataset.remove);render(false);document.querySelector('#chosen')?.previousElementSibling?.querySelector('input')?.focus();return;}
   if(b.dataset.region){state.region=b.dataset.region;render(false);document.querySelector(`[data-region="${state.region}"]`)?.focus();return;}
   if(b.dataset.district){state.district=b.dataset.district;main.querySelectorAll('[data-district]').forEach(el=>{el.classList.toggle('selected',el===b);el.setAttribute('aria-pressed',String(el===b));el.querySelector('.mark').textContent=el===b?'✓':'↗';});updateContact();return;}
-  switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
+  switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'scroll-to-continue':{
+   const nextButton=main.querySelector('[data-action="next"]');
+   nextButton.focus({preventScroll:true});
+   nextButton.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+   break;
+  }case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
  });
  document.addEventListener('input',e=>{if(e.target.dataset.field){state[e.target.dataset.field]=e.target.value;e.target.removeAttribute('aria-invalid');const error=document.querySelector('#error');if(error)error.textContent='';updateContact();}if(e.target.id==='district-search')document.querySelector('#districts').innerHTML=districtButtons(e.target.value);});
  document.addEventListener('submit',e=>{if(e.target.id==='contact-form'){e.preventDefault();next();}});

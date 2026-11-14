@@ -284,24 +284,33 @@ dialog[open],.dialog-body{overscroll-behavior:contain}
 }
 dialog > .interaction-flow{position:absolute}
 
-#contact-actions[hidden]{display:none}
-body:has(#contact-actions:not([hidden])){padding-bottom:calc(20px + var(--contact-actions-height,82px))}
-#contact-form :is(input,button){scroll-margin-bottom:calc(var(--contact-actions-height,82px) + 12px)}
-#contact-actions{
- position:fixed;z-index:75;left:50%;bottom:var(--keyboard-inset,0px);
- transform:translateX(-50%);width:min(520px,calc(100% - 20px));
- padding:16px 14px max(10px,env(safe-area-inset-bottom));
- background:#f8fcff;border:1px solid #c8deee;border-bottom:0;border-radius:16px 16px 0 0;
- box-shadow:0 -5px 22px #143a5a14;
+.course-continue-cue{
+ position:sticky;top:8px;z-index:4;display:flex;justify-content:center;
+ pointer-events:none;margin:0 0 12px;
 }
-#contact-actions.has-more{
- background:#f8fcffb8;
- -webkit-backdrop-filter:blur(9px);
- backdrop-filter:blur(9px);
+.course-continue-cue button{
+ pointer-events:auto;min-height:44px;padding:6px 13px;border:1px solid #c8deee;
+ border-radius:999px;background:#edf7fe;color:#005d9b;
+ box-shadow:0 2px 8px #143a5a14;font-size:12px;font-weight:650;
+}
+.course-continue-cue span{margin-inline-start:4px}
+.contact-form-end{height:1px}
+#contact-actions[hidden]{display:none}
+body:has(#contact-actions:not([hidden])){padding-bottom:calc(20px + var(--contact-actions-height,82px) + env(safe-area-inset-bottom))}
+#contact-form :is(input,button){scroll-margin-bottom:calc(var(--contact-actions-height,82px) + 20px)}
+#contact-actions{
+ position:fixed;z-index:75;left:50%;bottom:calc(var(--keyboard-inset,0px) + max(8px,env(safe-area-inset-bottom)));
+ transform:translate3d(-50%,0,0);width:min(520px,calc(100% - 20px));
+ padding:14px 13px 10px;border:1px solid #c8deee;border-radius:20px;
+ background:linear-gradient(155deg,#ffffffdf,#edf7fcad);
+ -webkit-backdrop-filter:blur(5px);
+ backdrop-filter:blur(5px);
+ box-shadow:inset 0 1px 1px #fff,0 5px 20px #143a5a22;
+ pointer-events:auto;
 }
 .contact-action-buttons{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .contact-scroll-cue{
- display:none;position:absolute;top:4px;left:calc(50% - 3px);
+ visibility:hidden;position:absolute;top:4px;left:calc(50% - 3px);
  width:6px;height:6px;border:solid #427697;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);
 }
-.has-more .contact-scroll-cue{display:block}
+.has-more .contact-scroll-cue{visibility:visible}

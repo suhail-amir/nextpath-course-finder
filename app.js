@@ -75,20 +75,29 @@
  const contactActions=document.querySelector('#contact-actions');
  let contactEndObserver;
  let contactInset=0;
+ let contactFrame=0;
  function positionContactActions(){
-  if(contactActions.hidden)return;
-  const viewport=window.visualViewport;
-  const editing=document.activeElement?.matches('#contact-form input');
-  // Ignore Safari's toolbar changes during scrolling. Only lift for the keyboard.
-  const overlap=editing&&viewport?window.innerHeight-viewport.height-viewport.offsetTop:0;
-  const inset=overlap>100?Math.round(overlap):0;
-  if(inset===contactInset)return;
-  contactInset=inset;
-  contactActions.style.setProperty('--keyboard-inset',inset+'px');
+  if(contactActions.hidden||contactFrame)return;
+  contactFrame=requestAnimationFrame(()=>{
+   contactFrame=0;
+   if(contactActions.hidden)return;
+   const viewport=window.visualViewport;
+   const editing=document.activeElement?.matches('#contact-form input');
+   // Use height to detect the keyboard. Its top offset can change as Safari pans to an input.
+   const occluded=viewport&&viewport.scale===1?window.innerHeight-viewport.height:0;
+   const keyboardOpen=occluded>100&&(editing||contactInset>0);
+   const inset=keyboardOpen?Math.max(0,Math.round(occluded-viewport.offsetTop)):0;
+   if(inset===contactInset)return;
+   contactInset=inset;
+   contactActions.style.setProperty('--keyboard-shift',-inset+'px');
+  });
  }
  window.visualViewport?.addEventListener('resize',positionContactActions);
+ window.visualViewport?.addEventListener('scroll',positionContactActions);
+ window.addEventListener('scroll',positionContactActions,{passive:true});
+ window.addEventListener('resize',positionContactActions);
  document.addEventListener('focusin',positionContactActions);
- document.addEventListener('focusout',()=>requestAnimationFrame(positionContactActions));
+ document.addEventListener('focusout',positionContactActions);
  new ResizeObserver(()=>{
   if(contactActions.hidden)return;
   const height=contactActions.offsetHeight;
@@ -103,6 +112,8 @@
   contactActions.hidden=state.phase!=='contact';
   if(contactActions.hidden){
    contactEndObserver?.disconnect();
+   contactInset=0;
+   contactActions.style.removeProperty('--keyboard-shift');
    contactActions.replaceChildren();
    return;
   }

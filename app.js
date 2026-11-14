@@ -85,7 +85,7 @@
    const editing=document.activeElement?.matches('#contact-form input');
    // Use height to detect the keyboard. Its top offset can change as Safari pans to an input.
    const occluded=viewport&&viewport.scale===1?window.innerHeight-viewport.height:0;
-   const keyboardOpen=occluded>100&&(editing||contactInset>0);
+   const keyboardOpen=editing&&occluded>100;
    const inset=keyboardOpen?Math.max(0,Math.round(occluded-viewport.offsetTop)):0;
    if(inset===contactInset)return;
    contactInset=inset;

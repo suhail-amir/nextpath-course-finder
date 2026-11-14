@@ -318,8 +318,10 @@ body:has(#contact-actions:not([hidden])){padding-bottom:calc(var(--contact-actio
  -webkit-backdrop-filter:blur(1.5px);
  backdrop-filter:blur(1.5px);
  box-shadow:inset 0 1px 1px #fff,0 5px 20px #143a5a22;
- pointer-events:auto;
+ pointer-events:auto;transition:transform .18s cubic-bezier(.22,.75,.25,1);
 }
+#contact-actions:has(button:focus-visible){transition:none}
+@media(prefers-reduced-motion:reduce){#contact-actions{transition:none}}
 .contact-action-buttons{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .contact-scroll-cue{
  visibility:hidden;position:absolute;top:4px;left:calc(50% - 3px);

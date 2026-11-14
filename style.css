@@ -283,3 +283,25 @@ dialog[open],.dialog-body{overscroll-behavior:contain}
  html,body,#page-content,#page-content :is(button,a,input),dialog,.dialog-body,dialog :is(button,a){touch-action:pan-y}
 }
 dialog > .interaction-flow{position:absolute}
+
+#contact-actions[hidden]{display:none}
+body:has(#contact-actions:not([hidden])){padding-bottom:calc(20px + var(--contact-actions-height,82px))}
+#contact-form :is(input,button){scroll-margin-bottom:calc(var(--contact-actions-height,82px) + 12px)}
+#contact-actions{
+ position:fixed;z-index:75;left:50%;bottom:var(--keyboard-inset,0px);
+ transform:translateX(-50%);width:min(520px,calc(100% - 20px));
+ padding:16px 14px max(10px,env(safe-area-inset-bottom));
+ background:#f8fcff;border:1px solid #c8deee;border-bottom:0;border-radius:16px 16px 0 0;
+ box-shadow:0 -5px 22px #143a5a14;
+}
+#contact-actions.has-more{
+ background:#f8fcffb8;
+ -webkit-backdrop-filter:blur(9px);
+ backdrop-filter:blur(9px);
+}
+.contact-action-buttons{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.contact-scroll-cue{
+ display:none;position:absolute;top:4px;left:calc(50% - 3px);
+ width:6px;height:6px;border:solid #427697;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);
+}
+.has-more .contact-scroll-cue{display:block}

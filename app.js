@@ -43,8 +43,7 @@
  function question(){const q=questions[state.q],en=EN_QUESTIONS[state.q],ml=ML_QUESTIONS[state.q];let h=heading(esc(t(en[0],ml[0])),esc(t(en[1],ml[1])),`${t('Question','ചോദ്യം')} ${String(state.q+1).padStart(2,'0')} / 14`);
   if(state.reviewing)h=`<button type="button" class="review-return" data-action="return-results">${t('Back to Results','ഫലത്തിലേക്ക് മടങ്ങുക')} <span aria-hidden="true">→</span></button>`+h;
   if(q.type==='course_select'){
-   const cue=(state.answers[12]||[]).length
-    ? `<div class="course-continue-cue"><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>` : '';
+   const cue=`<div class="course-continue-cue" ${state.answers[12]?.length?'':'hidden'}><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>`;
    return h+cue+coursePicker()+nav(t('Continue','തുടരാം'));
   }
   h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>'+nav();return h;
@@ -57,6 +56,18 @@
  }
  function groupButton(g){const selected=(state.answers[12]||[]).filter(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===g.id).length;return `<button type="button" class="option ${selected?'selected':''}" data-group="${g.id}" ${ADMISSIONS.courses.filter(c=>c.group===g.id).length>1?'aria-haspopup="dialog"':'aria-pressed="'+Boolean(selected)+'"'}>${icon(g.icon)}<span class="copy"><strong>${esc(groupLabel(g))}</strong><small>${selected?`${selected} ${t('selected','തിരഞ്ഞെടുത്തു')}`:ADMISSIONS.courses.filter(c=>c.group===g.id).length===1?t('Select course','കോഴ്‌സ് തിരഞ്ഞെടുക്കൂ'):t('Explore options','ഓപ്ഷനുകൾ കാണാം')}</small></span><span class="mark" aria-hidden="true">↗</span></button>`;}
  function chosen(){const ids=state.answers[12]||[];return `<p class="selection-summary" role="status">${ids.length} ${t('selected · You can skip this.','തിരഞ്ഞെടുത്തു · സ്കിപ്പ് ചെയ്യാം.')}</p><div class="chips">${ids.map(id=>{const c=ADMISSIONS.courses.find(c=>c.id===id);return c?`<button type="button" class="chip" data-remove="${esc(id)}" aria-label="${t('Remove','ഒഴിവാക്കുക')} ${esc(c.name)}">${esc(c.name)} ×</button>`:''}).join('')}</div>`;}
+ function refreshCourseSelection(id){
+  if(id){
+   const group=ADMISSIONS.groups.find(group=>group.id===id);
+   const button=main.querySelector(`[data-group="${id}"]`);
+   if(group&&button){
+    button.outerHTML=groupButton(group);
+    main.querySelector(`[data-group="${id}"]`)?.focus({preventScroll:true});
+   }
+  }
+  main.querySelector('#chosen').innerHTML=chosen();
+  main.querySelector('.course-continue-cue').hidden=!state.answers[12]?.length;
+ }
  function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
  function field(id,label,placeholder,attrs=''){return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" data-field="${id}" value="${esc(state[id])}" placeholder="${placeholder}" ${attrs}></div>`;}
@@ -67,13 +78,17 @@
  function positionContactActions(){
   if(contactActions.hidden)return;
   const viewport=window.visualViewport;
-  const inset=viewport?Math.max(0,Math.round(window.innerHeight-viewport.height-viewport.offsetTop)):0;
+  const editing=document.activeElement?.matches('#contact-form input');
+  // Ignore Safari's toolbar changes during scrolling. Only lift for the keyboard.
+  const overlap=editing&&viewport?window.innerHeight-viewport.height-viewport.offsetTop:0;
+  const inset=overlap>100?Math.round(overlap):0;
   if(inset===contactInset)return;
   contactInset=inset;
   contactActions.style.setProperty('--keyboard-inset',inset+'px');
  }
  window.visualViewport?.addEventListener('resize',positionContactActions);
- window.visualViewport?.addEventListener('scroll',positionContactActions);
+ document.addEventListener('focusin',positionContactActions);
+ document.addEventListener('focusout',()=>requestAnimationFrame(positionContactActions));
  new ResizeObserver(()=>{
   if(contactActions.hidden)return;
   const height=contactActions.offsetHeight;
@@ -296,7 +311,7 @@
    dialog.close();
    dialog.classList.remove('is-closing');
    if(afterClose){afterClose();return;}
-   if(modalGroup){const id=modalGroup;modalGroup=null;render(false);main.querySelector(`[data-group="${id}"]`)?.focus({preventScroll:true});}
+   if(modalGroup){const id=modalGroup;modalGroup=null;refreshCourseSelection(id);}
    else lastTrigger?.focus({preventScroll:true});
   }
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return;}
@@ -310,9 +325,9 @@
   if(b.id==='privacy'){showDialog(privacyPolicy(),false,'en');return;}if(b.dataset.guidance){guidanceDialog(b.dataset.guidance);return;}
   if(b.dataset.action==='back'){back();return;}if(b.dataset.action==='close'){closeDialog();return;}if(state.busy)return;
   if(b.dataset.answer!==undefined){const q=questions[state.q],o=q.opts[Number(b.dataset.answer)];if(!o)return;state.answers[state.q]=o.v;state.completed.add(state.q);main.querySelectorAll('[data-answer]').forEach(el=>{const selected=el===b;el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected));el.querySelector('.mark').textContent=selected?'✓':'↗';});next();return;}
-  if(b.dataset.group){const courses=ADMISSIONS.courses.filter(c=>c.group===b.dataset.group);if(courses.length===1){const id=courses[0].id,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];render(false);main.querySelector(`[data-group="${b.dataset.group}"]`)?.focus();}else openGroup(b.dataset.group);return;}
+  if(b.dataset.group){const courses=ADMISSIONS.courses.filter(c=>c.group===b.dataset.group);if(courses.length===1){const id=courses[0].id,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];refreshCourseSelection(b.dataset.group);}else openGroup(b.dataset.group);return;}
   if(b.dataset.course){const id=b.dataset.course,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];const selected=state.answers[12].includes(id);b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));b.querySelector('.mark').textContent=selected?'✓':'+';const footer=dialog.querySelector('.picker-footer');if(footer)footer.hidden=!(state.answers[12]||[]).some(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===modalGroup);updatePickerScroll();return;}
-  if(b.dataset.remove){state.answers[12]=(state.answers[12]||[]).filter(id=>id!==b.dataset.remove);render(false);document.querySelector('#chosen')?.previousElementSibling?.querySelector('input')?.focus();return;}
+  if(b.dataset.remove){state.answers[12]=(state.answers[12]||[]).filter(id=>id!==b.dataset.remove);refreshCourseSelection(ADMISSIONS.courses.find(course=>course.id===b.dataset.remove)?.group);document.querySelector('#chosen')?.previousElementSibling?.querySelector('input')?.focus();return;}
   if(b.dataset.region){state.region=b.dataset.region;render(false);document.querySelector(`[data-region="${state.region}"]`)?.focus();return;}
   if(b.dataset.district){state.district=b.dataset.district;main.querySelectorAll('[data-district]').forEach(el=>{el.classList.toggle('selected',el===b);el.setAttribute('aria-pressed',String(el===b));el.querySelector('.mark').textContent=el===b?'✓':'↗';});updateContact();return;}
   switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'scroll-to-continue':{
@@ -327,5 +342,10 @@
  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&state.phase==='contact'&&e.target.matches('input')&&e.target.id!=='district-search'){e.preventDefault();if(e.target.id==='name'&&C.validName(state.name))document.querySelector('#phone').focus();else if(e.target.id==='phone'&&C.normalizePhone(state.phone))document.querySelector('[data-region]')?.focus();else if(e.target.id==='stateName')document.querySelector('#place')?.focus();else if(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation())next();}});
  dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
  document.querySelector('.site-footer').innerHTML=footer();
+ if('scrollRestoration' in history)history.scrollRestoration='manual';
  render(false);
+ window.scrollTo({top:0,behavior:'instant'});
+ window.addEventListener('pageshow',event=>{
+  if(!event.persisted&&state.phase==='intro')window.scrollTo({top:0,behavior:'instant'});
+ });
 })();

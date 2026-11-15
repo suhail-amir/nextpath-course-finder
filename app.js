@@ -46,7 +46,7 @@
  function inlineQuizNavigation(){
   if(usesGlassNavigation())return '';
   const next=quizNextLabel();
-  return `<div class="nav"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?primary(next,'next'):`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;
+  return `<div class="nav${next?' course-picker-actions':''}"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?`<button type="button" class="primary course-continue" data-action="next">${next}${arrow}</button>`:`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;
  }
  function question(){const q=questions[state.q],en=EN_QUESTIONS[state.q],ml=ML_QUESTIONS[state.q];let h=heading(esc(t(en[0],ml[0])),esc(t(en[1],ml[1])),`${t('Question','ചോദ്യം')} ${String(state.q+1).padStart(2,'0')} / 14`);
   if(state.reviewing)h=`<button type="button" class="review-return" data-action="return-results">${t('Back to Results','ഫലത്തിലേക്ക് മടങ്ങുക')} <span aria-hidden="true">→</span></button>`+h;
@@ -64,18 +64,19 @@
  }
  function groupButton(g){const selected=(state.answers[12]||[]).filter(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===g.id).length;return `<button type="button" class="option ${selected?'selected':''}" data-group="${g.id}" ${ADMISSIONS.courses.filter(c=>c.group===g.id).length>1?'aria-haspopup="dialog"':'aria-pressed="'+Boolean(selected)+'"'}>${icon(g.icon)}<span class="copy"><strong>${esc(groupLabel(g))}</strong><small>${selected?`${selected} ${t('selected','തിരഞ്ഞെടുത്തു')}`:ADMISSIONS.courses.filter(c=>c.group===g.id).length===1?t('Select course','കോഴ്‌സ് തിരഞ്ഞെടുക്കൂ'):t('Explore options','ഓപ്ഷനുകൾ കാണാം')}</small></span><span class="mark" aria-hidden="true">↗</span></button>`;}
  function chosen(){const ids=state.answers[12]||[];return `<p class="selection-summary" role="status">${ids.length} ${t('selected · You can skip this.','തിരഞ്ഞെടുത്തു · സ്കിപ്പ് ചെയ്യാം.')}</p><div class="chips">${ids.map(id=>{const c=ADMISSIONS.courses.find(c=>c.id===id);return c?`<button type="button" class="chip" data-remove="${esc(id)}" aria-label="${t('Remove','ഒഴിവാക്കുക')} ${esc(c.name)}">${esc(c.name)} ×</button>`:''}).join('')}</div>`;}
- function refreshCourseSelection(id){
+ function refreshCourseSelection(id,restoreFocus=false){
   if(id){
    const group=ADMISSIONS.groups.find(group=>group.id===id);
    const button=main.querySelector(`[data-group="${id}"]`);
    if(group&&button){
     button.outerHTML=groupButton(group);
-    main.querySelector(`[data-group="${id}"]`)?.focus({preventScroll:true});
+    if(restoreFocus)main.querySelector(`[data-group="${id}"]`)?.focus({preventScroll:true});
    }
   }
   main.querySelector('#chosen').innerHTML=chosen();
   main.querySelector('.course-continue-cue').hidden=usesGlassNavigation()||!state.answers[12]?.length;
  }
+ let groupOpenedWithKeyboard=false;
  function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
  function field(id,label,placeholder,attrs=''){return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" data-field="${id}" value="${esc(state[id])}" placeholder="${placeholder}" ${attrs}></div>`;}
@@ -141,6 +142,7 @@
   nextButton.type=contact?'submit':'button';
   nextButton.disabled=contact?!(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation()):false;
   nextButton.classList.toggle('revisit-next',!contact&&state.completed.has(state.q));
+  nextButton.classList.toggle('course-continue',!contact&&questions[state.q].type==='course_select');
   if(contact){
    nextButton.id='contact-submit';
    nextButton.setAttribute('form','contact-form');
@@ -349,7 +351,7 @@
    dialog.close();
    dialog.classList.remove('is-closing');
    if(afterClose){afterClose();return;}
-   if(modalGroup){const id=modalGroup;modalGroup=null;refreshCourseSelection(id);}
+   if(modalGroup){const id=modalGroup;modalGroup=null;refreshCourseSelection(id,groupOpenedWithKeyboard);}
    else lastTrigger?.focus({preventScroll:true});
   }
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return;}
@@ -363,7 +365,7 @@
   if(b.id==='privacy'){showDialog(privacyPolicy(),false,'en');return;}if(b.dataset.guidance){guidanceDialog(b.dataset.guidance);return;}
   if(b.dataset.action==='back'){back();return;}if(b.dataset.action==='close'){closeDialog();return;}if(state.busy)return;
   if(b.dataset.answer!==undefined){const q=questions[state.q],o=q.opts[Number(b.dataset.answer)];if(!o)return;state.answers[state.q]=o.v;state.completed.add(state.q);main.querySelectorAll('[data-answer]').forEach(el=>{const selected=el===b;el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected));el.querySelector('.mark').textContent=selected?'✓':'↗';});next();return;}
-  if(b.dataset.group){const courses=ADMISSIONS.courses.filter(c=>c.group===b.dataset.group);if(courses.length===1){const id=courses[0].id,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];refreshCourseSelection(b.dataset.group);}else openGroup(b.dataset.group);return;}
+  if(b.dataset.group){const courses=ADMISSIONS.courses.filter(c=>c.group===b.dataset.group);if(courses.length===1){const id=courses[0].id,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];refreshCourseSelection(b.dataset.group,event.detail===0);}else{groupOpenedWithKeyboard=event.detail===0;openGroup(b.dataset.group);}return;}
   if(b.dataset.course){const id=b.dataset.course,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];const selected=state.answers[12].includes(id);b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));b.querySelector('.mark').textContent=selected?'✓':'+';const footer=dialog.querySelector('.picker-footer');if(footer)footer.hidden=!(state.answers[12]||[]).some(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===modalGroup);updatePickerScroll();return;}
   if(b.dataset.remove){state.answers[12]=(state.answers[12]||[]).filter(id=>id!==b.dataset.remove);refreshCourseSelection(ADMISSIONS.courses.find(course=>course.id===b.dataset.remove)?.group);document.querySelector('#chosen')?.previousElementSibling?.querySelector('input')?.focus();return;}
   if(b.dataset.region){

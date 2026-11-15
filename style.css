@@ -323,11 +323,11 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
 #contact-actions:has(button:focus-visible){transition:none}
 @media(prefers-reduced-motion:reduce){#contact-actions{transition:none}}
 .contact-action-buttons{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.contact-action-buttons > button{
+.contact-action-buttons > button,.course-picker-actions > button{
  flex:0 1 auto;min-width:0;max-width:70%;min-height:44px;
  padding:8px 12px;font-size:12px;gap:8px;
 }
-.contact-action-buttons .arrow{font-size:17px}
+.contact-action-buttons .arrow,.course-picker-actions .arrow{font-size:17px}
 .contact-action-buttons .revisit-next{width:auto;min-width:86px}
 .contact-scroll-cue{
  visibility:hidden;position:absolute;top:4px;left:calc(50% - 3px);
@@ -339,4 +339,22 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
  .social-links a[href*="instagram"]:active{color:#e4405f}
  .social-links a[href*="linkedin"]:active{color:#0a66c2}
  .social-links>a{transition:none}
+}
+
+.course-continue,#contact-submit{
+ position:relative;isolation:isolate;overflow:hidden;
+}
+#contact-submit{
+ min-height:51px;
+ background:linear-gradient(165deg,#438fc5,#0071bc 48%,#005b96);
+ box-shadow:inset 0 1px 0 #ffffff65,0 3px 10px #005b9633;
+}
+#contact-submit:not(:disabled):hover{background:linear-gradient(165deg,#3a87bd,#005e9c 65%,#004b7d)}
+.course-continue::after,#contact-submit:not(:disabled)::after{
+ content:'';position:absolute;inset:0 auto 0 0;width:55%;pointer-events:none;
+ background:linear-gradient(105deg,transparent,#d1efff70,transparent);
+ animation:review-sheen 3.8s ease-in-out infinite;
+}
+@media(prefers-reduced-motion:reduce){
+ .course-continue::after,#contact-submit:not(:disabled)::after{animation:none}
 }

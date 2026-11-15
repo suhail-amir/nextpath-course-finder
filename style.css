@@ -352,6 +352,31 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
  background:linear-gradient(105deg,transparent,#d1efff70,transparent);
  animation:review-sheen 3.8s ease-in-out infinite;
 }
+#contact-submit:enabled{
+ position:relative;isolation:isolate;overflow:hidden;
+ background:linear-gradient(155deg,#287fbb,#0071bc 46%,#00558d);
+ box-shadow:inset 0 1px 0 #ffffff85,inset 0 -1px 0 #003f6b80,0 3px 10px #005b9630;
+ animation:results-heartbeat 3.8s ease-in-out infinite;
+}
+#contact-submit:enabled::before{
+ content:'';position:absolute;inset:0 auto 0 0;width:55%;pointer-events:none;z-index:-1;
+ background:linear-gradient(105deg,transparent,#d1efff75,transparent);
+ animation:review-sheen 3.8s ease-in-out infinite;
+}
+#contact-submit:enabled .navigation-label{color:var(--guidance-mint)}
+@supports ((background-clip:text) or (-webkit-background-clip:text)){
+ #contact-submit:enabled .navigation-label{
+  background:linear-gradient(105deg,#d2ffdf 0%,#ddffe8 36%,#f4fff7 48%,#ddffe8 60%,#d2ffdf 100%);
+  background-size:230% 100%;background-clip:text;-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;animation:guidance-text-glaze 3.4s linear infinite;
+ }
+}
+@keyframes results-heartbeat{
+ 0%,9%,20%,34%,100%{scale:1}
+ 14%{scale:1.035}
+ 26%{scale:1.022}
+}
 @media(prefers-reduced-motion:reduce){
- .course-continue::after{animation:none}
+ .course-continue::after,#contact-submit:enabled,#contact-submit:enabled::before{animation:none}
+ #contact-submit:enabled .navigation-label{background:none;-webkit-text-fill-color:var(--guidance-mint)}
 }

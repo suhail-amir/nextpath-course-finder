@@ -35,18 +35,15 @@
  function intro(){return `<section class="welcome"><p class="welcome-label">${t('YOUR NEXT CHAPTER','ഇനി നിങ്ങളുടെ അടുത്ത ചുവട്')}</p><h1>${t('Discover <span>Your Future</span>','നിങ്ങളുടെ <span>ഭാവിയിലേക്ക്</span>')}</h1><p class="welcome-description">${t('Find the course that fits you in 3 minutes.','നിങ്ങൾക്ക് ചേരുന്ന കോഴ്‌സ് 3 മിനിറ്റിൽ കണ്ടെത്താം.')}</p>${primary(t('Find My Dream Course','എന്റെ സ്വപ്ന കോഴ്‌സ് കണ്ടെത്താം'),'start')}<div class="welcome-meta"><span>${icon('clock')}${t('3 Minutes','3 മിനിറ്റ്')}</span><span>${icon('spark')}${t('AI Career Insights','AI കരിയർ അറിവുകൾ')}</span></div><p class="welcome-footnote">${icon('compass')}${t('A few questions about you. A clearer place to start.','നിങ്ങളെക്കുറിച്ച് കുറച്ച് ചോദ്യങ്ങൾ. എവിടെ തുടങ്ങണമെന്ന് അറിയാം.')}</p></section>`;}
  const completedSteps=()=>state.completed.size+Number(state.phase==='result'||state.reviewing);
  function progress(){const total=15,done=completedSteps();const active=state.reviewing?-1:state.phase==='quiz'?(state.q<5?0:1):state.phase==='contact'?2:-1;const steps=[[5,t('Interests','ഇഷ്ടങ്ങൾ')],[14,t('Plans','പദ്ധതികൾ')],[total,t('Your Results','നിങ്ങളുടെ ഫലം')]];return `<div class="progress-top" aria-live="polite"><span><b class="count">${done}</b> ${t('Completed','പൂർത്തിയായി')}</span><span><b class="count">${total-done}</b> ${t('Left','ബാക്കി')}</span></div><div class="journey-track"><progress max="${total}" value="${done}" aria-label="${t('Journey progress','പുരോഗതി')}"></progress><span class="journey-position" data-completed="${done}" aria-hidden="true"></span></div><div class="milestones" aria-label="${t('Milestones','നാഴികക്കല്ലുകൾ')}">${steps.map(([n,label],i)=>`<span ${i===active?'aria-current="step"':''} data-threshold="${n}" class="milestone ${i===active?'current ':''}${done>=n?'reached':''}"><i aria-hidden="true">${done>=n?'<svg class="milestone-tick" viewBox="0 0 16 16" focusable="false"><path pathLength="1" d="M4 8.2 6.7 11 12 5.5"/></svg>':i+1}</i>${label}</span>`).join('')}</div>`;}
- function nav(next=null){
-  const revisit=state.completed.has(state.q);
-  if(revisit&&!next)next=t('Next','അടുത്തത്');
-  if(state.reviewing)next=state.q<questions.length-1?t('Next Question','അടുത്ത ചോദ്യം'):t('See Updated Results','ഫലം കാണാം');
-  return `<div class="nav"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?`<button type="button" class="primary${revisit?' revisit-next':''}" data-action="next">${next}${arrow}</button>`:`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;}
+ function quizNextLabel(){
+  if(state.reviewing)return state.q===questions.length-1?t('See Updated Results','ഫലം കാണാം'):t('Next Question','അടുത്ത ചോദ്യം');
+  if(questions[state.q].type==='course_select')return t('Continue','തുടരാം');
+  return state.completed.has(state.q)?t('Next','അടുത്തത്'):'';
+ }
  function question(){const q=questions[state.q],en=EN_QUESTIONS[state.q],ml=ML_QUESTIONS[state.q];let h=heading(esc(t(en[0],ml[0])),esc(t(en[1],ml[1])),`${t('Question','ചോദ്യം')} ${String(state.q+1).padStart(2,'0')} / 14`);
   if(state.reviewing)h=`<button type="button" class="review-return" data-action="return-results">${t('Back to Results','ഫലത്തിലേക്ക് മടങ്ങുക')} <span aria-hidden="true">→</span></button>`+h;
-  if(q.type==='course_select'){
-   const cue=`<div class="course-continue-cue" ${state.answers[12]?.length?'':'hidden'}><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>`;
-   return h+cue+coursePicker()+nav(t('Continue','തുടരാം'));
-  }
-  h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>'+nav();return h;
+  if(q.type==='course_select')return h+coursePicker();
+  h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>';return h;
  }
  function coursePicker(){let h='';const sections=[['health',t('Health & care','ആരോഗ്യ മേഖല')],['tech',t('Technology & engineering','ടെക്‌നോളജി & എൻജിനീയറിങ്')],['business',t('Business & commerce','ബിസിനസ് & കൊമേഴ്‌സ്')],['other',t('Other paths','മറ്റു വഴികൾ')]];
   for(const [area,label] of sections)h+=`<h2 class="course-section">${label}</h2><div class="course-groups">${ADMISSIONS.groups.filter(g=>g.area===area).map(groupButton).join('')}</div>`;
@@ -66,13 +63,12 @@
    }
   }
   main.querySelector('#chosen').innerHTML=chosen();
-  main.querySelector('.course-continue-cue').hidden=!state.answers[12]?.length;
  }
  function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
  function field(id,label,placeholder,attrs=''){return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" data-field="${id}" value="${esc(state[id])}" placeholder="${placeholder}" ${attrs}></div>`;}
  function contactLocationFields(){return state.region==='kerala'?`<div class="districts" id="districts">${districtButtons('')}</div>`:field('stateName',t('State / Union Territory','സംസ്ഥാനം / കേന്ദ്രഭരണ പ്രദേശം'),t('Enter your state','സംസ്ഥാനം'),'autocomplete="address-level1" maxlength="80"')+field('place',t('Town / City','പട്ടണം / നഗരം'),t('Enter your town','പട്ടണം'),'autocomplete="address-level2" maxlength="80"');}
- function contact(){return `<form id="contact-form" novalidate>${heading(t('A Little About You','ഇനി നിങ്ങളെക്കുറിച്ച്'),t('One last step before your results.','ഫലം കാണുന്നതിന് മുമ്പ് ഒരു ചെറിയ കാര്യം കൂടി.'))}${field('name',t('Your Name','നിങ്ങളുടെ പേര്'),t('Enter your name','പേര് എഴുതൂ'),'autocomplete="name" maxlength="80" required')}<section id="phone-section" ${C.validName(state.name)?'':'hidden'}>${field('phone',t('WhatsApp Number','WhatsApp നമ്പർ'),t('Your 10-digit mobile number','10 അക്ക മൊബൈൽ നമ്പർ'),'type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"')}<p class="helper">${t('Indian mobile number · +91','ഇന്ത്യൻ മൊബൈൽ നമ്പർ · +91')}</p></section><section id="location-section" ${C.validName(state.name)&&C.normalizePhone(state.phone)?'':'hidden'}><h2>${t('Where Are You From?','നിങ്ങൾ എവിടെയാണ്?')}</h2><div class="segments">${[['kerala',t('Kerala','കേരളം')],['outside',t('Outside Kerala','കേരളത്തിന് പുറത്ത്')]].map(([id,label])=>`<button type="button" data-region="${id}" aria-pressed="${state.region===id}">${label}</button>`).join('')}</div><div id="contact-location-fields">${contactLocationFields()}</div></section>${collect?`<p class="helper">${t('When you tap See Results, NextPath EduCare saves your contact details and answers for course guidance and may contact you.','ഫലം കാണുക അമർത്തുമ്പോൾ കോഴ്‌സ് സഹായത്തിനായി NextPath EduCare നിങ്ങളുടെ വിവരങ്ങളും മറുപടികളും സൂക്ഷിക്കും. ഞങ്ങൾ നിങ്ങളെ ബന്ധപ്പെടാം.')}</p>`:''}<p class="error" id="error" role="alert"></p><div class="contact-form-end" aria-hidden="true"></div></form>`;}
+ function contact(){return `<form id="contact-form" novalidate>${heading(t('A Little About You','ഇനി നിങ്ങളെക്കുറിച്ച്'),t('One last step before your results.','ഫലം കാണുന്നതിന് മുമ്പ് ഒരു ചെറിയ കാര്യം കൂടി.'))}${field('name',t('Your Name','നിങ്ങളുടെ പേര്'),t('Enter your name','പേര് എഴുതൂ'),'autocomplete="name" maxlength="80" required')}<section id="phone-section" ${C.validName(state.name)?'':'hidden'}>${field('phone',t('WhatsApp Number','WhatsApp നമ്പർ'),t('Your 10-digit mobile number','10 അക്ക മൊബൈൽ നമ്പർ'),'type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"')}<p class="helper">${t('Indian mobile number · +91','ഇന്ത്യൻ മൊബൈൽ നമ്പർ · +91')}</p></section><section id="location-section" ${C.validName(state.name)&&C.normalizePhone(state.phone)?'':'hidden'}><h2>${t('Where Are You From?','നിങ്ങൾ എവിടെയാണ്?')}</h2><div class="segments">${[['kerala',t('Kerala','കേരളം')],['outside',t('Outside Kerala','കേരളത്തിന് പുറത്ത്')]].map(([id,label])=>`<button type="button" data-region="${id}" aria-pressed="${state.region===id}">${label}</button>`).join('')}</div><div id="contact-location-fields">${contactLocationFields()}</div></section>${collect?`<p class="helper">${t('When you tap See Results, NextPath EduCare saves your contact details and answers for course guidance and may contact you.','ഫലം കാണുക അമർത്തുമ്പോൾ കോഴ്‌സ് സഹായത്തിനായി NextPath EduCare നിങ്ങളുടെ വിവരങ്ങളും മറുപടികളും സൂക്ഷിക്കും. ഞങ്ങൾ നിങ്ങളെ ബന്ധപ്പെടാം.')}</p>`:''}<p class="error" id="error" role="alert"></p></form>`;}
  const contactActions=document.querySelector('#contact-actions');
  let contactEndObserver;
  let contactInset=0;
@@ -107,24 +103,45 @@
   contactEndObserver=new IntersectionObserver(([entry])=>{
    contactActions.classList.toggle('has-more',!entry.isIntersecting);
   },{rootMargin:`0px 0px -${height+10}px 0px`});
-  contactEndObserver.observe(document.querySelector('#contact-form').lastElementChild);
+  observeNavigationEnd();
  }).observe(contactActions);
- function renderContactActions(){
-  contactActions.hidden=state.phase!=='contact';
-  if(contactActions.hidden){
-   contactEndObserver?.disconnect();
+ function observeNavigationEnd(){
+  contactEndObserver?.disconnect();
+  const end=main.querySelector('.navigation-end');
+  if(end)contactEndObserver?.observe(end);
+ }
+ function renderNavigation(){
+  const contact=state.phase==='contact';
+  contactActions.hidden=!contact&&state.phase!=='quiz';
+  if(!contact){
    contactInset=0;
    contactActions.style.removeProperty('--keyboard-shift');
-   contactActions.replaceChildren();
-   return;
   }
-  contactActions.innerHTML=`<span class="contact-scroll-cue" aria-hidden="true"></span><div class="contact-action-buttons"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button><button type="submit" form="contact-form" class="primary" id="contact-submit" ${C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation()?'':'disabled'}>${t('See Results','ഫലം കാണുക')}${arrow}</button></div>`;
-  contactActions.classList.remove('has-more');
-  positionContactActions();
-  if(contactEndObserver){
-   contactEndObserver.disconnect();
-   contactEndObserver.observe(document.querySelector('.contact-form-end'));
+  observeNavigationEnd();
+  if(contactActions.hidden)return;
+
+  const backButton=contactActions.querySelector('[data-action="back"]');
+  backButton.textContent='← '+t('Back','പിന്നോട്ട്');
+  const nextButton=contactActions.querySelector('.primary');
+  const label=contact?t('See Results','ഫലം കാണുക'):quizNextLabel();
+  nextButton.hidden=!label;
+  nextButton.querySelector('.navigation-label').textContent=label;
+  nextButton.type=contact?'submit':'button';
+  nextButton.disabled=contact?!(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation()):false;
+  nextButton.classList.toggle('revisit-next',!contact&&state.completed.has(state.q));
+  if(contact){
+   nextButton.id='contact-submit';
+   nextButton.setAttribute('form','contact-form');
+   delete nextButton.dataset.action;
+   positionContactActions();
+  }else{
+   nextButton.removeAttribute('id');
+   nextButton.removeAttribute('form');
+   nextButton.dataset.action='next';
   }
+  const hint=contactActions.querySelector('.nav-note');
+  hint.hidden=contact||Boolean(label);
+  hint.textContent=t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.');
  }
  function updateContact(){if(state.phase!=='contact')return;document.querySelector('#phone-section').hidden=!C.validName(state.name);document.querySelector('#location-section').hidden=!(C.validName(state.name)&&C.normalizePhone(state.phone));document.querySelector('#contact-submit').disabled=!(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation());}
  function districtButtons(search){const query=search.toLowerCase().trim();const items=C.districts.map((name,i)=>({name,ml:C.districtML[i]})).filter(d=>(d.name+' '+d.ml).toLowerCase().includes(query));return items.length?items.map(d=>`<button type="button" class="option ${state.district===d.name?'selected':''}" data-district="${d.name}" aria-pressed="${state.district===d.name}"><span class="copy">${t(d.name,d.ml)}</span><span class="mark" aria-hidden="true">${state.district===d.name?'✓':'↗'}</span></button>`).join(''):`<p class="small-note" role="status">${t('No district found. Try another spelling.','ജില്ല കണ്ടെത്തിയില്ല. മറ്റൊരു രീതിയിൽ എഴുതൂ.')}</p>`;}
@@ -235,8 +252,8 @@
   bannerTools.classList.remove('language-leaving');
   document.querySelector('#language').innerHTML=icon('globe')+'<span>'+t('മലയാളം','English')+'</span>';document.querySelector('#language').lang=t('ml','en');document.querySelector('#language').setAttribute('aria-label',t('Switch to Malayalam','Switch to English'));
   document.querySelector('#banner-progress').hidden=state.phase==='intro';document.querySelector('#banner-progress').innerHTML=progress();document.querySelector('.journey-position').style.left=completedSteps()/15*100+'%';document.querySelector('#banner-subtitle').textContent=t('Find the right course after +2 in 3 minutes','+2 കഴിഞ്ഞ് ചേരുന്ന കോഴ്‌സ് 3 മിനിറ്റിൽ കണ്ടെത്താം');
-  main.innerHTML=state.phase==='intro'?intro():`<div class="workspace"><div class="flow"><section class="stage">${state.phase==='quiz'?question():state.phase==='contact'?contact():results()}</section></div>`;
-  renderContactActions();
+  main.innerHTML=state.phase==='intro'?intro():`<div class="workspace"><div class="flow"><section class="stage">${state.phase==='quiz'?question():state.phase==='contact'?contact():results()}<div class="navigation-end" aria-hidden="true"></div></section></div>`;
+  renderNavigation();
   document.dispatchEvent(new Event('compass:render'));
   if(focus){window.scrollTo({top:0,behavior:'instant'});main.querySelector('h1')?.focus({preventScroll:true});}
  }
@@ -356,12 +373,7 @@
    return;
   }
   if(b.dataset.district){state.district=b.dataset.district;main.querySelectorAll('[data-district]').forEach(el=>{el.classList.toggle('selected',el===b);el.setAttribute('aria-pressed',String(el===b));el.querySelector('.mark').textContent=el===b?'✓':'↗';});updateContact();return;}
-  switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'scroll-to-continue':{
-   const nextButton=main.querySelector('[data-action="next"]');
-   nextButton.focus({preventScroll:true});
-   nextButton.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-   break;
-  }case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
+  switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
  });
  document.addEventListener('input',e=>{if(e.target.dataset.field){state[e.target.dataset.field]=e.target.value;e.target.removeAttribute('aria-invalid');const error=document.querySelector('#error');if(error)error.textContent='';updateContact();}if(e.target.id==='district-search')document.querySelector('#districts').innerHTML=districtButtons(e.target.value);});
  document.addEventListener('submit',e=>{if(e.target.id==='contact-form'){e.preventDefault();next();}});

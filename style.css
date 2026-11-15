@@ -284,32 +284,10 @@ dialog[open],.dialog-body{overscroll-behavior:contain}
 }
 dialog > .interaction-flow{position:absolute}
 
-.course-continue-cue{
- position:sticky;top:8px;z-index:4;display:flex;justify-content:center;
- pointer-events:none;margin:0 0 12px;animation:course-cue-enter .42s var(--ease) both;
-}
-.course-continue-cue[hidden]{display:none}
-@keyframes course-cue-enter{from{opacity:0;transform:translateY(-9px)}to{opacity:1;transform:none}}
-.course-continue-cue button{
- pointer-events:auto;position:relative;overflow:hidden;min-height:44px;padding:6px 13px;border:1px solid #c8deee;
- border-radius:999px;background:#edf7fe;color:#005d9b;
- box-shadow:0 2px 8px #143a5a14;font-size:12px;font-weight:650;
-}
-.course-continue-cue button::after{
- content:'';position:absolute;inset:0 auto 0 0;width:55%;pointer-events:none;
- background:linear-gradient(105deg,transparent,#0071bc34,transparent);
- animation:course-cue-sheen 4.1s ease-in-out infinite;
-}
-@keyframes course-cue-sheen{
- 0%,5%{transform:translateX(-105%)}
- 78%,100%{transform:translateX(190%)}
-}
-@media(prefers-reduced-motion:reduce){.course-continue-cue,.course-continue-cue button::after{animation:none}}
-.course-continue-cue span{margin-inline-start:4px}
-.contact-form-end{height:1px}
-#contact-actions[hidden]{display:none}
+.navigation-end{height:1px}
+#contact-actions[hidden],#contact-actions [hidden]{display:none}
 body:has(#contact-actions:not([hidden])){padding-bottom:calc(var(--contact-actions-height,82px) + max(8px,env(safe-area-inset-bottom)))}
-#contact-form :is(input,button){scroll-margin-bottom:calc(var(--contact-actions-height,82px) + 20px)}
+body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-bottom:calc(var(--contact-actions-height,82px) + 20px)}
 #contact-actions{
  position:fixed;z-index:75;left:50%;bottom:max(8px,env(safe-area-inset-bottom));
  transform:translate3d(-50%,var(--keyboard-shift,0px),0);width:min(520px,calc(100% - 20px));
@@ -323,6 +301,8 @@ body:has(#contact-actions:not([hidden])){padding-bottom:calc(var(--contact-actio
 #contact-actions:has(button:focus-visible){transition:none}
 @media(prefers-reduced-motion:reduce){#contact-actions{transition:none}}
 .contact-action-buttons{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.contact-action-buttons:has(.revisit-next:not([hidden])) > button{flex:1;min-width:0}
+.contact-action-buttons .nav-note{text-align:end}
 .contact-scroll-cue{
  visibility:hidden;position:absolute;top:4px;left:calc(50% - 3px);
  width:6px;height:6px;border:solid #427697;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);

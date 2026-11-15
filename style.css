@@ -320,8 +320,7 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
  box-shadow:inset 0 1px 1px #fff,0 5px 20px #143a5a22;
  pointer-events:auto;transition:transform .18s cubic-bezier(.22,.75,.25,1);
 }
-#contact-actions.keyboard-open{transition:none}
-#contact-actions:has(#contact-submit){padding-block:11px 4px}
+#contact-actions:has(#contact-submit):has(button:focus-visible){transition:none}
 @media(prefers-reduced-motion:reduce){#contact-actions{transition:none}}
 .contact-action-buttons{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .contact-action-buttons > button,.course-picker-actions > button{
@@ -342,33 +341,17 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
  .social-links>a{transition:none}
 }
 
-.course-continue,#contact-submit{
+.course-continue{
  position:relative;isolation:isolate;overflow:hidden;
 }
 .course-picker-actions>.course-continue,.contact-action-buttons>.course-continue{
  min-inline-size:108px;justify-content:center;
 }
-#contact-submit{
- min-height:53px;
- background:linear-gradient(165deg,#357eb5,#0071bc 44%,#005790);
- box-shadow:inset 0 1px 0 #ffffff80,inset 0 -1px 0 #00355145,0 3px 10px #005b9633;
-}
-#contact-submit:not(:disabled):hover{background:linear-gradient(165deg,#3a87bd,#005e9c 65%,#004b7d)}
-.course-continue::after,#contact-submit:not(:disabled)::before{
+.course-continue::after{
  content:'';position:absolute;inset:0 auto 0 0;width:55%;pointer-events:none;
  background:linear-gradient(105deg,transparent,#d1efff70,transparent);
  animation:review-sheen 3.8s ease-in-out infinite;
 }
-#contact-submit:not(:disabled)::before{z-index:-1}
-#contact-submit:not(:disabled) .navigation-label{color:var(--guidance-mint)}
-@supports ((background-clip:text) or (-webkit-background-clip:text)){
- #contact-submit:not(:disabled) .navigation-label{
-  background:linear-gradient(105deg,#bdf7d0 12%,#d9ffe6 38%,#f4fff7 48%,#d9ffe6 59%,#bdf7d0 80%);
-  background-size:230% 100%;background-clip:text;-webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;animation:guidance-text-glaze 3.4s linear infinite;
- }
-}
 @media(prefers-reduced-motion:reduce){
- .course-continue::after,#contact-submit:not(:disabled)::before{animation:none}
- #contact-submit:not(:disabled) .navigation-label{background:none;-webkit-text-fill-color:var(--guidance-mint)}
+ .course-continue::after{animation:none}
 }

@@ -113,7 +113,6 @@
  let contactEndObserver;
  let contactInset=0;
  let contactFrame=0;
- let keyboardOpen=false;
  function positionContactActions(){
   if(contactActions.hidden||contactFrame)return;
   contactFrame=requestAnimationFrame(()=>{
@@ -123,8 +122,7 @@
    const editing=document.activeElement?.matches('#contact-form input');
    // Use height to detect the keyboard. Its top offset can change as Safari pans to an input.
    const occluded=viewport&&viewport.scale===1?window.innerHeight-viewport.height:0;
-   keyboardOpen=state.phase==='contact'&&(editing||keyboardOpen)&&occluded>100;
-   contactActions.classList.toggle('keyboard-open',keyboardOpen);
+   const keyboardOpen=editing&&occluded>100;
    const inset=keyboardOpen?Math.max(0,Math.round(occluded-viewport.offsetTop)):0;
    if(inset===contactInset)return;
    contactInset=inset;
@@ -157,8 +155,6 @@
   contactActions.hidden=!usesGlassNavigation();
   if(!contact){
    contactInset=0;
-   keyboardOpen=false;
-   contactActions.classList.remove('keyboard-open');
    contactActions.style.removeProperty('--keyboard-shift');
   }
   observeNavigationEnd();

@@ -40,10 +40,21 @@
   if(questions[state.q].type==='course_select')return t('Continue','തുടരാം');
   return state.completed.has(state.q)?t('Next','അടുത്തത്'):'';
  }
+ function usesGlassNavigation(){
+  return state.phase==='contact'||(state.phase==='quiz'&&(state.reviewing||state.completed.has(state.q)));
+ }
+ function inlineQuizNavigation(){
+  if(usesGlassNavigation())return '';
+  const next=quizNextLabel();
+  return `<div class="nav"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?primary(next,'next'):`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;
+ }
  function question(){const q=questions[state.q],en=EN_QUESTIONS[state.q],ml=ML_QUESTIONS[state.q];let h=heading(esc(t(en[0],ml[0])),esc(t(en[1],ml[1])),`${t('Question','ചോദ്യം')} ${String(state.q+1).padStart(2,'0')} / 14`);
   if(state.reviewing)h=`<button type="button" class="review-return" data-action="return-results">${t('Back to Results','ഫലത്തിലേക്ക് മടങ്ങുക')} <span aria-hidden="true">→</span></button>`+h;
-  if(q.type==='course_select')return h+coursePicker();
-  h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>';return h;
+  if(q.type==='course_select'){
+   const cue=`<div class="course-continue-cue" ${!usesGlassNavigation()&&state.answers[12]?.length?'':'hidden'}><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>`;
+   return h+cue+coursePicker()+inlineQuizNavigation();
+  }
+  h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>'+inlineQuizNavigation();return h;
  }
  function coursePicker(){let h='';const sections=[['health',t('Health & care','ആരോഗ്യ മേഖല')],['tech',t('Technology & engineering','ടെക്‌നോളജി & എൻജിനീയറിങ്')],['business',t('Business & commerce','ബിസിനസ് & കൊമേഴ്‌സ്')],['other',t('Other paths','മറ്റു വഴികൾ')]];
   for(const [area,label] of sections)h+=`<h2 class="course-section">${label}</h2><div class="course-groups">${ADMISSIONS.groups.filter(g=>g.area===area).map(groupButton).join('')}</div>`;
@@ -63,6 +74,7 @@
    }
   }
   main.querySelector('#chosen').innerHTML=chosen();
+  main.querySelector('.course-continue-cue').hidden=usesGlassNavigation()||!state.answers[12]?.length;
  }
  function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
@@ -112,7 +124,7 @@
  }
  function renderNavigation(){
   const contact=state.phase==='contact';
-  contactActions.hidden=!contact&&state.phase!=='quiz';
+  contactActions.hidden=!usesGlassNavigation();
   if(!contact){
    contactInset=0;
    contactActions.style.removeProperty('--keyboard-shift');
@@ -139,9 +151,6 @@
    nextButton.removeAttribute('form');
    nextButton.dataset.action='next';
   }
-  const hint=contactActions.querySelector('.nav-note');
-  hint.hidden=contact||Boolean(label);
-  hint.textContent=t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.');
  }
  function updateContact(){if(state.phase!=='contact')return;document.querySelector('#phone-section').hidden=!C.validName(state.name);document.querySelector('#location-section').hidden=!(C.validName(state.name)&&C.normalizePhone(state.phone));document.querySelector('#contact-submit').disabled=!(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation());}
  function districtButtons(search){const query=search.toLowerCase().trim();const items=C.districts.map((name,i)=>({name,ml:C.districtML[i]})).filter(d=>(d.name+' '+d.ml).toLowerCase().includes(query));return items.length?items.map(d=>`<button type="button" class="option ${state.district===d.name?'selected':''}" data-district="${d.name}" aria-pressed="${state.district===d.name}"><span class="copy">${t(d.name,d.ml)}</span><span class="mark" aria-hidden="true">${state.district===d.name?'✓':'↗'}</span></button>`).join(''):`<p class="small-note" role="status">${t('No district found. Try another spelling.','ജില്ല കണ്ടെത്തിയില്ല. മറ്റൊരു രീതിയിൽ എഴുതൂ.')}</p>`;}
@@ -373,7 +382,12 @@
    return;
   }
   if(b.dataset.district){state.district=b.dataset.district;main.querySelectorAll('[data-district]').forEach(el=>{el.classList.toggle('selected',el===b);el.setAttribute('aria-pressed',String(el===b));el.querySelector('.mark').textContent=el===b?'✓':'↗';});updateContact();return;}
-  switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
+  switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'scroll-to-continue':{
+   const nextButton=main.querySelector('[data-action="next"]');
+   nextButton.focus({preventScroll:true});
+   nextButton.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+   break;
+  }case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
  });
  document.addEventListener('input',e=>{if(e.target.dataset.field){state[e.target.dataset.field]=e.target.value;e.target.removeAttribute('aria-invalid');const error=document.querySelector('#error');if(error)error.textContent='';updateContact();}if(e.target.id==='district-search')document.querySelector('#districts').innerHTML=districtButtons(e.target.value);});
  document.addEventListener('submit',e=>{if(e.target.id==='contact-form'){e.preventDefault();next();}});

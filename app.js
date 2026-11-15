@@ -71,7 +71,8 @@
  function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
  function field(id,label,placeholder,attrs=''){return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" data-field="${id}" value="${esc(state[id])}" placeholder="${placeholder}" ${attrs}></div>`;}
- function contact(){return `<form id="contact-form" novalidate>${heading(t('A Little About You','ഇനി നിങ്ങളെക്കുറിച്ച്'),t('One last step before your results.','ഫലം കാണുന്നതിന് മുമ്പ് ഒരു ചെറിയ കാര്യം കൂടി.'))}${field('name',t('Your Name','നിങ്ങളുടെ പേര്'),t('Enter your name','പേര് എഴുതൂ'),'autocomplete="name" maxlength="80" required')}<section id="phone-section" ${C.validName(state.name)?'':'hidden'}>${field('phone',t('WhatsApp Number','WhatsApp നമ്പർ'),t('Your 10-digit mobile number','10 അക്ക മൊബൈൽ നമ്പർ'),'type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"')}<p class="helper">${t('Indian mobile number · +91','ഇന്ത്യൻ മൊബൈൽ നമ്പർ · +91')}</p></section><section id="location-section" ${C.validName(state.name)&&C.normalizePhone(state.phone)?'':'hidden'}><h2>${t('Where Are You From?','നിങ്ങൾ എവിടെയാണ്?')}</h2><div class="segments">${[['kerala',t('Kerala','കേരളം')],['outside',t('Outside Kerala','കേരളത്തിന് പുറത്ത്')]].map(([id,label])=>`<button type="button" data-region="${id}" aria-pressed="${state.region===id}">${label}</button>`).join('')}</div>${state.region==='kerala'?`<div class="districts" id="districts">${districtButtons('')}</div>`:field('stateName',t('State / Union Territory','സംസ്ഥാനം / കേന്ദ്രഭരണ പ്രദേശം'),t('Enter your state','സംസ്ഥാനം'),'autocomplete="address-level1" maxlength="80"')+field('place',t('Town / City','പട്ടണം / നഗരം'),t('Enter your town','പട്ടണം'),'autocomplete="address-level2" maxlength="80"')}</section>${collect?`<p class="helper">${t('When you tap See Results, NextPath EduCare saves your contact details and answers for course guidance and may contact you.','ഫലം കാണുക അമർത്തുമ്പോൾ കോഴ്‌സ് സഹായത്തിനായി NextPath EduCare നിങ്ങളുടെ വിവരങ്ങളും മറുപടികളും സൂക്ഷിക്കും. ഞങ്ങൾ നിങ്ങളെ ബന്ധപ്പെടാം.')}</p>`:''}<p class="error" id="error" role="alert"></p><div class="contact-form-end" aria-hidden="true"></div></form>`;}
+ function contactLocationFields(){return state.region==='kerala'?`<div class="districts" id="districts">${districtButtons('')}</div>`:field('stateName',t('State / Union Territory','സംസ്ഥാനം / കേന്ദ്രഭരണ പ്രദേശം'),t('Enter your state','സംസ്ഥാനം'),'autocomplete="address-level1" maxlength="80"')+field('place',t('Town / City','പട്ടണം / നഗരം'),t('Enter your town','പട്ടണം'),'autocomplete="address-level2" maxlength="80"');}
+ function contact(){return `<form id="contact-form" novalidate>${heading(t('A Little About You','ഇനി നിങ്ങളെക്കുറിച്ച്'),t('One last step before your results.','ഫലം കാണുന്നതിന് മുമ്പ് ഒരു ചെറിയ കാര്യം കൂടി.'))}${field('name',t('Your Name','നിങ്ങളുടെ പേര്'),t('Enter your name','പേര് എഴുതൂ'),'autocomplete="name" maxlength="80" required')}<section id="phone-section" ${C.validName(state.name)?'':'hidden'}>${field('phone',t('WhatsApp Number','WhatsApp നമ്പർ'),t('Your 10-digit mobile number','10 അക്ക മൊബൈൽ നമ്പർ'),'type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"')}<p class="helper">${t('Indian mobile number · +91','ഇന്ത്യൻ മൊബൈൽ നമ്പർ · +91')}</p></section><section id="location-section" ${C.validName(state.name)&&C.normalizePhone(state.phone)?'':'hidden'}><h2>${t('Where Are You From?','നിങ്ങൾ എവിടെയാണ്?')}</h2><div class="segments">${[['kerala',t('Kerala','കേരളം')],['outside',t('Outside Kerala','കേരളത്തിന് പുറത്ത്')]].map(([id,label])=>`<button type="button" data-region="${id}" aria-pressed="${state.region===id}">${label}</button>`).join('')}</div><div id="contact-location-fields">${contactLocationFields()}</div></section>${collect?`<p class="helper">${t('When you tap See Results, NextPath EduCare saves your contact details and answers for course guidance and may contact you.','ഫലം കാണുക അമർത്തുമ്പോൾ കോഴ്‌സ് സഹായത്തിനായി NextPath EduCare നിങ്ങളുടെ വിവരങ്ങളും മറുപടികളും സൂക്ഷിക്കും. ഞങ്ങൾ നിങ്ങളെ ബന്ധപ്പെടാം.')}</p>`:''}<p class="error" id="error" role="alert"></p><div class="contact-form-end" aria-hidden="true"></div></form>`;}
  const contactActions=document.querySelector('#contact-actions');
  let contactEndObserver;
  let contactInset=0;
@@ -339,7 +340,21 @@
   if(b.dataset.group){const courses=ADMISSIONS.courses.filter(c=>c.group===b.dataset.group);if(courses.length===1){const id=courses[0].id,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];refreshCourseSelection(b.dataset.group);}else openGroup(b.dataset.group);return;}
   if(b.dataset.course){const id=b.dataset.course,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];const selected=state.answers[12].includes(id);b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));b.querySelector('.mark').textContent=selected?'✓':'+';const footer=dialog.querySelector('.picker-footer');if(footer)footer.hidden=!(state.answers[12]||[]).some(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===modalGroup);updatePickerScroll();return;}
   if(b.dataset.remove){state.answers[12]=(state.answers[12]||[]).filter(id=>id!==b.dataset.remove);refreshCourseSelection(ADMISSIONS.courses.find(course=>course.id===b.dataset.remove)?.group);document.querySelector('#chosen')?.previousElementSibling?.querySelector('input')?.focus();return;}
-  if(b.dataset.region){state.region=b.dataset.region;render(false);document.querySelector(`[data-region="${state.region}"]`)?.focus();return;}
+  if(b.dataset.region){
+   const input=document.activeElement;
+   if(input?.matches('#contact-form input'))input.blur();
+   if(state.region!==b.dataset.region){
+    state.region=b.dataset.region;
+    document.querySelector('#contact-location-fields').innerHTML=contactLocationFields();
+    main.querySelectorAll('[data-region]').forEach(button=>{
+     button.setAttribute('aria-pressed',String(button===b));
+    });
+   }
+   b.focus({preventScroll:true});
+   updateContact();
+   positionContactActions();
+   return;
+  }
   if(b.dataset.district){state.district=b.dataset.district;main.querySelectorAll('[data-district]').forEach(el=>{el.classList.toggle('selected',el===b);el.setAttribute('aria-pressed',String(el===b));el.querySelector('.mark').textContent=el===b?'✓':'↗';});updateContact();return;}
   switch(b.dataset.action){case 'start':move(()=>{state.phase='quiz';state.q=0;});break;case 'next':next();break;case 'scroll-to-continue':{
    const nextButton=main.querySelector('[data-action="next"]');
@@ -350,7 +365,20 @@
  });
  document.addEventListener('input',e=>{if(e.target.dataset.field){state[e.target.dataset.field]=e.target.value;e.target.removeAttribute('aria-invalid');const error=document.querySelector('#error');if(error)error.textContent='';updateContact();}if(e.target.id==='district-search')document.querySelector('#districts').innerHTML=districtButtons(e.target.value);});
  document.addEventListener('submit',e=>{if(e.target.id==='contact-form'){e.preventDefault();next();}});
- document.addEventListener('keydown',e=>{if(e.key==='Enter'&&state.phase==='contact'&&e.target.matches('input')&&e.target.id!=='district-search'){e.preventDefault();if(e.target.id==='name'&&C.validName(state.name))document.querySelector('#phone').focus();else if(e.target.id==='phone'&&C.normalizePhone(state.phone))document.querySelector('[data-region]')?.focus();else if(e.target.id==='stateName')document.querySelector('#place')?.focus();else if(C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation())next();}});
+ document.addEventListener('keydown',event=>{
+  const input=event.target;
+  if(event.key!=='Enter'||event.isComposing||state.phase!=='contact'||!input.matches('#contact-form input'))return;
+  event.preventDefault();
+  if(input.id==='name'&&C.validName(state.name)){
+   document.querySelector('#phone').focus();
+  }else if(input.id==='stateName'&&C.validPlace(state.stateName)){
+   document.querySelector('#place').focus();
+  }else{
+   input.blur();
+   positionContactActions();
+   if(input.id!=='phone'&&C.validName(state.name)&&C.normalizePhone(state.phone)&&validLocation())next();
+  }
+ });
  dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});
  document.querySelector('.site-footer').innerHTML=footer();
  if('scrollRestoration' in history)history.scrollRestoration='manual';

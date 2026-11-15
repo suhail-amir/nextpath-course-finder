@@ -2,7 +2,7 @@
 (() => {
  const C=CompassCore,esc=C.escape,main=document.querySelector('#main'),dialog=document.querySelector('#dialog');
  const state={lang:'en',phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:'',busy:false};
- let timer=null,modalGroup=null,lastTrigger=null;
+ let timer=null,modalGroup=null,courseDraft=null,lastTrigger=null;
  let submission=null;
  const collect=CompassSubmission.enabled;
  const t=(en,ml)=>state.phase!=='intro'&&state.lang==='ml'?ml:en;
@@ -36,9 +36,22 @@
  const completedSteps=()=>state.completed.size+Number(state.phase==='result'||state.reviewing);
  function progress(){const total=15,done=completedSteps();const active=state.reviewing?-1:state.phase==='quiz'?(state.q<5?0:1):state.phase==='contact'?2:-1;const steps=[[5,t('Interests','ഇഷ്ടങ്ങൾ')],[14,t('Plans','പദ്ധതികൾ')],[total,t('Your Results','നിങ്ങളുടെ ഫലം')]];return `<div class="progress-top" aria-live="polite"><span><b class="count">${done}</b> ${t('Completed','പൂർത്തിയായി')}</span><span><b class="count">${total-done}</b> ${t('Left','ബാക്കി')}</span></div><div class="journey-track"><progress max="${total}" value="${done}" aria-label="${t('Journey progress','പുരോഗതി')}"></progress><span class="journey-position" data-completed="${done}" aria-hidden="true"></span></div><div class="milestones" aria-label="${t('Milestones','നാഴികക്കല്ലുകൾ')}">${steps.map(([n,label],i)=>`<span ${i===active?'aria-current="step"':''} data-threshold="${n}" class="milestone ${i===active?'current ':''}${done>=n?'reached':''}"><i aria-hidden="true">${done>=n?'<svg class="milestone-tick" viewBox="0 0 16 16" focusable="false"><path pathLength="1" d="M4 8.2 6.7 11 12 5.5"/></svg>':i+1}</i>${label}</span>`).join('')}</div>`;}
  function quizNextLabel(){
+  if(questions[state.q].type==='course_select')return courseChoiceMade()?t('Continue','തുടരാം'):t('Skip','ഒഴിവാക്കാം');
   if(state.reviewing)return state.q===questions.length-1?t('See Updated Results','ഫലം കാണാം'):t('Next Question','അടുത്ത ചോദ്യം');
-  if(questions[state.q].type==='course_select')return t('Continue','തുടരാം');
   return state.completed.has(state.q)?t('Next','അടുത്തത്'):'';
+ }
+ function courseChoiceMade(){return Boolean(state.answers[12]?.length||state.other.trim());}
+ function updateCourseNavigation(){
+  const cue=main.querySelector('.course-continue-cue');
+  if(cue)cue.hidden=usesGlassNavigation()||!courseChoiceMade();
+  const label=(usesGlassNavigation()?contactActions:main).querySelector('.course-continue .navigation-label');
+  const next=quizNextLabel();
+  if(!label||label.textContent===next)return;
+  label.textContent=next;
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+   label.getAnimations().forEach(animation=>animation.cancel());
+   label.animate([{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:220,easing:'ease-out'});
+  }
  }
  function usesGlassNavigation(){
   return state.phase==='contact'||(state.phase==='quiz'&&(state.reviewing||state.completed.has(state.q)));
@@ -46,12 +59,12 @@
  function inlineQuizNavigation(){
   if(usesGlassNavigation())return '';
   const next=quizNextLabel();
-  return `<div class="nav${next?' course-picker-actions':''}"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?`<button type="button" class="primary course-continue" data-action="next">${next}${arrow}</button>`:`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;
+  return `<div class="nav${next?' course-picker-actions':''}"><button type="button" class="back" data-action="back">← ${t('Back','പിന്നോട്ട്')}</button>${next?`<button type="button" class="primary course-continue" data-action="next"><span class="navigation-label">${next}</span>${arrow}</button>`:`<span class="nav-note">${t('Tap an answer to continue.','ഒന്ന് തിരഞ്ഞെടുത്താൽ മുന്നോട്ട് പോകാം.')}</span>`}</div>`;
  }
  function question(){const q=questions[state.q],en=EN_QUESTIONS[state.q],ml=ML_QUESTIONS[state.q];let h=heading(esc(t(en[0],ml[0])),esc(t(en[1],ml[1])),`${t('Question','ചോദ്യം')} ${String(state.q+1).padStart(2,'0')} / 14`);
   if(state.reviewing)h=`<button type="button" class="review-return" data-action="return-results">${t('Back to Results','ഫലത്തിലേക്ക് മടങ്ങുക')} <span aria-hidden="true">→</span></button>`+h;
   if(q.type==='course_select'){
-   const cue=`<div class="course-continue-cue" ${!usesGlassNavigation()&&state.answers[12]?.length?'':'hidden'}><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>`;
+   const cue=`<div class="course-continue-cue" ${!usesGlassNavigation()&&courseChoiceMade()?'':'hidden'}><button type="button" data-action="scroll-to-continue">${t('Scroll down to continue','തുടരാൻ താഴേക്ക് സ്ക്രോൾ ചെയ്യൂ')} <span aria-hidden="true">↓</span></button></div>`;
    return h+cue+coursePicker()+inlineQuizNavigation();
   }
   h+='<div class="options">'+q.opts.map((o,i)=>`<button class="option ${state.answers[state.q]===o.v?'selected':''}" type="button" data-answer="${i}" aria-pressed="${state.answers[state.q]===o.v}"><span class="option-icon" aria-hidden="true">${esc(o.i)}</span><span class="copy"><strong>${esc(t(en[2][i],ml[2][i]))}</strong>${state.lang==='en'&&state.q<5&&o.s?`<small>${esc(o.s)}</small>`:''}</span><span class="mark" aria-hidden="true">${state.answers[state.q]===o.v?'✓':'↗'}</span></button>`).join('')+'</div>'+inlineQuizNavigation();return h;
@@ -74,10 +87,24 @@
    }
   }
   main.querySelector('#chosen').innerHTML=chosen();
-  main.querySelector('.course-continue-cue').hidden=usesGlassNavigation()||!state.answers[12]?.length;
+  updateCourseNavigation();
  }
  let groupOpenedWithKeyboard=false;
- function openGroup(id){modalGroup=id;const g=ADMISSIONS.groups.find(g=>g.id===id);if(!g)return;showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${ADMISSIONS.courses.filter(c=>c.group===id).map(c=>`<button type="button" class="option ${(state.answers[12]||[]).includes(c.id)?'selected':''}" data-course="${c.id}" aria-pressed="${(state.answers[12]||[]).includes(c.id)}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${(state.answers[12]||[]).includes(c.id)?'✓':'+'}</span></button>`).join('')}</div>`,true);}
+ function savedGroupChoices(id){
+  return (state.answers[12]||[]).filter(choice=>ADMISSIONS.courses.find(c=>c.id===choice)?.group===id);
+ }
+ function pickerHasChoices(){return courseDraft.size>0||savedGroupChoices(modalGroup).length>0;}
+ function openGroup(id,draft=new Set(savedGroupChoices(id))){
+  const g=ADMISSIONS.groups.find(g=>g.id===id);
+  if(!g)return;
+  modalGroup=id;
+  courseDraft=draft;
+  const options=ADMISSIONS.courses.filter(c=>c.group===id).map(c=>{
+   const selected=draft.has(c.id);
+   return `<button type="button" class="option ${selected?'selected':''}" data-course="${c.id}" aria-pressed="${selected}"><span class="copy"><strong lang="en">${esc(c.name)}</strong></span><span class="mark" aria-hidden="true">${selected?'✓':'+'}</span></button>`;
+  }).join('');
+  showDialog(`<h2 id="dialog-title">${esc(groupLabel(g))}</h2><p>${t('Pick the courses you like. Entry requirements still need checking.','ഇഷ്ടമുള്ള കോഴ്‌സുകൾ തിരഞ്ഞെടുക്കൂ. ചേരാനുള്ള യോഗ്യത ഇനിയും പരിശോധിക്കാനുണ്ട്.')}</p>${g.sourceAward?`<p class="small-note">${t('B.Tech / BE: confirm the degree name with the college.','B.Tech / BE: ബിരുദത്തിന്റെ പേര് കോളേജിനോട് ചോദിച്ച് ഉറപ്പാക്കണം.')}</p>`:''}<div class="options">${options}</div>`,true);
+ }
  function validLocation(){return state.region==='kerala'?C.districts.includes(state.district):C.validPlace(state.stateName)&&C.validPlace(state.place);}
  function field(id,label,placeholder,attrs=''){return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" data-field="${id}" value="${esc(state[id])}" placeholder="${placeholder}" ${attrs}></div>`;}
  function contactLocationFields(){return state.region==='kerala'?`<div class="districts" id="districts">${districtButtons('')}</div>`:field('stateName',t('State / Union Territory','സംസ്ഥാനം / കേന്ദ്രഭരണ പ്രദേശം'),t('Enter your state','സംസ്ഥാനം'),'autocomplete="address-level1" maxlength="80"')+field('place',t('Town / City','പട്ടണം / നഗരം'),t('Enter your town','പട്ടണം'),'autocomplete="address-level2" maxlength="80"');}
@@ -86,6 +113,7 @@
  let contactEndObserver;
  let contactInset=0;
  let contactFrame=0;
+ let keyboardOpen=false;
  function positionContactActions(){
   if(contactActions.hidden||contactFrame)return;
   contactFrame=requestAnimationFrame(()=>{
@@ -95,7 +123,8 @@
    const editing=document.activeElement?.matches('#contact-form input');
    // Use height to detect the keyboard. Its top offset can change as Safari pans to an input.
    const occluded=viewport&&viewport.scale===1?window.innerHeight-viewport.height:0;
-   const keyboardOpen=editing&&occluded>100;
+   keyboardOpen=state.phase==='contact'&&(editing||keyboardOpen)&&occluded>100;
+   contactActions.classList.toggle('keyboard-open',keyboardOpen);
    const inset=keyboardOpen?Math.max(0,Math.round(occluded-viewport.offsetTop)):0;
    if(inset===contactInset)return;
    contactInset=inset;
@@ -128,6 +157,8 @@
   contactActions.hidden=!usesGlassNavigation();
   if(!contact){
    contactInset=0;
+   keyboardOpen=false;
+   contactActions.classList.remove('keyboard-open');
    contactActions.style.removeProperty('--keyboard-shift');
   }
   observeNavigationEnd();
@@ -338,7 +369,7 @@
   },{reverse:true,home,hold:home?220:0});
  }
  function guidanceDialog(id){const course=COURSES.find(c=>c.id===id);showDialog(`<div class="personal-guidance"><img class="guidance-app-mark" src="assets/whatsapp-mark.png" width="34" height="34" alt="WhatsApp"><h2 id="dialog-title">${t('A Little More Guidance','കുറച്ചുകൂടി സഹായം വേണോ?')}</h2>${course?`<p class="guidance-course">${reportCourseName(course)}</p>`:''}<p>${t('For more personalised guidance, talk to our experienced team.','നിങ്ങൾക്ക് ചേരുന്ന വഴി കണ്ടെത്താൻ ഞങ്ങളുടെ പരിചയസമ്പന്നരായ ടീമിനോട് സംസാരിക്കാം.')}</p><a class="guidance-link guidance-mini" href="${esc(whatsappUrl())}" target="_blank" rel="noopener noreferrer"><span class="guidance-sheen" aria-hidden="true"></span><span class="guidance-label">${t('Chat on WhatsApp','WhatsApp-ൽ സംസാരിക്കാം')}</span><span class="guidance-arrow" aria-hidden="true">→</span></a></div>`);}
- function showDialog(body,picker=false,language=document.documentElement.lang){dialog.lang=language;if(!dialog.open)lastTrigger=document.activeElement;dialog.classList.toggle('course-picker',picker);dialog.innerHTML=`<div class="dialog-toolbar"><button type="button" class="dialog-close" data-action="close" aria-label="${language==='en'?'Close':'അടയ്ക്കുക'}">×</button></div><div class="dialog-body">${body}</div>${picker?`<div class="picker-scrollbar" aria-hidden="true"><span></span></div><div class="picker-footer" ${(state.answers[12]||[]).some(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===modalGroup)?'':'hidden'}>${primary(t('Done','തിരഞ്ഞെടുത്തു'),'close')}</div>`:''}`;if(!dialog.open)dialog.showModal();if(picker){dialog.querySelector('.dialog-body').addEventListener('scroll',updatePickerScroll,{passive:true});requestAnimationFrame(updatePickerScroll);}}
+ function showDialog(body,picker=false,language=document.documentElement.lang){dialog.lang=language;if(!dialog.open)lastTrigger=document.activeElement;dialog.classList.toggle('course-picker',picker);dialog.innerHTML=`<div class="dialog-toolbar"><button type="button" class="dialog-close" data-action="close" aria-label="${language==='en'?'Close':'അടയ്ക്കുക'}">×</button></div><div class="dialog-body">${body}</div>${picker?`<div class="picker-scrollbar" aria-hidden="true"><span></span></div><div class="picker-footer" ${pickerHasChoices()?'':'hidden'}>${primary(t('Done','തിരഞ്ഞെടുത്തു'),'confirm-courses')}</div>`:''}`;if(!dialog.open)dialog.showModal();if(picker){dialog.querySelector('.dialog-body').addEventListener('scroll',updatePickerScroll,{passive:true});requestAnimationFrame(updatePickerScroll);}}
  function updatePickerScroll(){const body=dialog.querySelector('.dialog-body'),rail=dialog.querySelector('.picker-scrollbar');if(!body||!rail)return;const footer=dialog.querySelector('.picker-footer'),height=Math.max(8,body.clientHeight/body.scrollHeight*100);rail.hidden=body.scrollHeight<=body.clientHeight;rail.style.top=dialog.querySelector('.dialog-toolbar').offsetHeight+8+'px';rail.style.bottom=(footer&&!footer.hidden?footer.offsetHeight:0)+8+'px';const thumb=rail.firstElementChild;thumb.style.height=height+'%';thumb.style.top=(100-height)*body.scrollTop/Math.max(1,body.scrollHeight-body.clientHeight)+'%';}
  window.addEventListener('resize',updatePickerScroll);
  function closeDialog(afterClose){
@@ -351,8 +382,14 @@
    dialog.close();
    dialog.classList.remove('is-closing');
    if(afterClose){afterClose();return;}
-   if(modalGroup){const id=modalGroup;modalGroup=null;refreshCourseSelection(id,groupOpenedWithKeyboard);}
-   else lastTrigger?.focus({preventScroll:true});
+   if(modalGroup){
+    modalGroup=null;
+    courseDraft=null;
+    if(lastTrigger?.isConnected){
+     if(groupOpenedWithKeyboard)lastTrigger.focus({preventScroll:true});
+     else if(document.activeElement===lastTrigger)lastTrigger.blur();
+    }
+   }else lastTrigger?.focus({preventScroll:true});
   }
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return;}
   dialog.addEventListener('animationend',finish);
@@ -361,12 +398,34 @@
  }
  document.addEventListener('click',event=>{const b=event.target.closest('button');if(!b)return;
   if(dialog.classList.contains('is-closing'))return;
-  if(b.id==='language'){if(state.phase==='intro')return;cancelMove();const open=modalGroup;if(dialog.open)dialog.close();state.lang=state.lang==='en'?'ml':'en';render(false);if(open)openGroup(open);return;}
+  if(b.id==='language'){if(state.phase==='intro')return;cancelMove();const open=modalGroup;if(dialog.open)dialog.close();state.lang=state.lang==='en'?'ml':'en';render(false);if(open)openGroup(open,courseDraft);return;}
   if(b.id==='privacy'){showDialog(privacyPolicy(),false,'en');return;}if(b.dataset.guidance){guidanceDialog(b.dataset.guidance);return;}
   if(b.dataset.action==='back'){back();return;}if(b.dataset.action==='close'){closeDialog();return;}if(state.busy)return;
   if(b.dataset.answer!==undefined){const q=questions[state.q],o=q.opts[Number(b.dataset.answer)];if(!o)return;state.answers[state.q]=o.v;state.completed.add(state.q);main.querySelectorAll('[data-answer]').forEach(el=>{const selected=el===b;el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected));el.querySelector('.mark').textContent=selected?'✓':'↗';});next();return;}
   if(b.dataset.group){const courses=ADMISSIONS.courses.filter(c=>c.group===b.dataset.group);if(courses.length===1){const id=courses[0].id,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];refreshCourseSelection(b.dataset.group,event.detail===0);}else{groupOpenedWithKeyboard=event.detail===0;openGroup(b.dataset.group);}return;}
-  if(b.dataset.course){const id=b.dataset.course,a=state.answers[12]||[];state.answers[12]=a.includes(id)?a.filter(x=>x!==id):[...a,id];const selected=state.answers[12].includes(id);b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected));b.querySelector('.mark').textContent=selected?'✓':'+';const footer=dialog.querySelector('.picker-footer');if(footer)footer.hidden=!(state.answers[12]||[]).some(id=>ADMISSIONS.courses.find(c=>c.id===id)?.group===modalGroup);updatePickerScroll();return;}
+  if(b.dataset.course){
+   const id=b.dataset.course,selected=!courseDraft.has(id);
+   if(selected)courseDraft.add(id);
+   else courseDraft.delete(id);
+   b.classList.toggle('selected',selected);
+   b.setAttribute('aria-pressed',String(selected));
+   b.querySelector('.mark').textContent=selected?'✓':'+';
+   dialog.querySelector('.picker-footer').hidden=!pickerHasChoices();
+   updatePickerScroll();
+   return;
+  }
+  if(b.dataset.action==='confirm-courses'){
+   const id=modalGroup;
+   const saved=state.answers[12]||[],groupChoices=savedGroupChoices(id);
+   state.answers[12]=saved.filter(choice=>!groupChoices.includes(choice)||courseDraft.has(choice))
+    .concat([...courseDraft].filter(choice=>!saved.includes(choice)));
+   closeDialog(()=>{
+    modalGroup=null;
+    courseDraft=null;
+    refreshCourseSelection(id,groupOpenedWithKeyboard);
+   });
+   return;
+  }
   if(b.dataset.remove){state.answers[12]=(state.answers[12]||[]).filter(id=>id!==b.dataset.remove);refreshCourseSelection(ADMISSIONS.courses.find(course=>course.id===b.dataset.remove)?.group);document.querySelector('#chosen')?.previousElementSibling?.querySelector('input')?.focus();return;}
   if(b.dataset.region){
    const input=document.activeElement;
@@ -391,7 +450,7 @@
    break;
   }case 'retry-save':void saveContact();break;case 'review':if(state.phase==='result')move(()=>{state.reviewing=true;state.phase='quiz';state.q=0;},{hold:0});break;case 'return-results':if(state.reviewing)move(endReview,{reverse:true,hold:0});break;case 'restart':showDialog(`<h2 id="dialog-title">${t('Start fresh?','വീണ്ടും തുടങ്ങണോ?')}</h2><p>${t('This clears your answers and details from this tab.','ഈ ടാബിലെ നിങ്ങളുടെ മറുപടികളും വിവരങ്ങളും മായും.')}</p>${primary(t('Clear and start again','മായ്ച്ച് വീണ്ടും തുടങ്ങാം'),'confirm-restart')}`);break;case 'confirm-restart':closeDialog(()=>move(()=>{submission=null;Object.assign(state,{phase:'intro',reviewing:false,q:0,contact:0,answers:{},completed:new Set(),name:'',phone:'',region:'kerala',district:'',place:'',stateName:'',other:''});},{reverse:true,home:true,hold:0}));break;}
  });
- document.addEventListener('input',e=>{if(e.target.dataset.field){state[e.target.dataset.field]=e.target.value;e.target.removeAttribute('aria-invalid');const error=document.querySelector('#error');if(error)error.textContent='';updateContact();}if(e.target.id==='district-search')document.querySelector('#districts').innerHTML=districtButtons(e.target.value);});
+ document.addEventListener('input',e=>{if(e.target.dataset.field){state[e.target.dataset.field]=e.target.value;e.target.removeAttribute('aria-invalid');const error=document.querySelector('#error');if(error)error.textContent='';if(e.target.dataset.field==='other')updateCourseNavigation();else updateContact();}if(e.target.id==='district-search')document.querySelector('#districts').innerHTML=districtButtons(e.target.value);});
  document.addEventListener('submit',e=>{if(e.target.id==='contact-form'){e.preventDefault();next();}});
  document.addEventListener('keydown',event=>{
   const input=event.target;

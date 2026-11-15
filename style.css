@@ -356,7 +356,7 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
  position:relative;isolation:isolate;overflow:hidden;
  background:linear-gradient(155deg,#287fbb,#0071bc 46%,#00558d);
  box-shadow:inset 0 1px 0 #ffffff85,inset 0 -1px 0 #003f6b80,0 3px 10px #005b9630;
- animation:results-heartbeat 3.8s ease-in-out infinite;
+ animation:results-heartbeat .8s ease-in-out infinite;
 }
 #contact-submit:enabled::before{
  content:'';position:absolute;inset:0 auto 0 0;width:55%;pointer-events:none;z-index:-1;
@@ -372,9 +372,9 @@ body:has(#contact-actions:not([hidden])) #main :is(input,button){scroll-margin-b
  }
 }
 @keyframes results-heartbeat{
- 0%,9%,20%,34%,100%{scale:1}
- 14%{scale:1.035}
- 26%{scale:1.022}
+ 0%,24%,46%,100%{scale:1}
+ 12%{scale:1.035}
+ 34%{scale:1.022}
 }
 @media(prefers-reduced-motion:reduce){
  .course-continue::after,#contact-submit:enabled,#contact-submit:enabled::before{animation:none}
